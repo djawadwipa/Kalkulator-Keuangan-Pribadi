@@ -47,8 +47,11 @@ jobs:
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
-      - name: Unit test, lint, debug tests, and release build
-        run: ./gradlew --no-daemon --stacktrace testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest assembleRelease
+      - name: Unit test, lint, and debug builds
+        run: ./gradlew --no-daemon --stacktrace testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
+
+      - name: Release build with R8
+        run: ./gradlew --no-daemon --stacktrace assembleRelease
 
       - name: Generate dependency report
         if: success()

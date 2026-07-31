@@ -2,12 +2,12 @@
 
 ![Logo Cashflow Orbit](docs/branding/cashflow-orbit.webp)
 
-Aplikasi Android native murni untuk pencatatan, perhitungan, dan analisis keuangan pribadi.
+Aplikasi Android native murni untuk pencatatan, perencanaan, perhitungan, dan analisis keuangan pribadi.
 
 - **Package ID permanen:** `id.djawadwipa.kalkulatorkeuangan`
-- **Repository target:** public
+- **Repository:** public
 - **UI:** Kotlin + Jetpack Compose + Material 3
-- **Penyimpanan:** SQLite privat perangkat
+- **Penyimpanan:** Room/SQLite privat perangkat
 - **Minimum Android:** API 23
 - **Compile/target SDK:** API 36
 - **Internet permission:** tidak ada
@@ -16,33 +16,36 @@ Aplikasi Android native murni untuk pencatatan, perhitungan, dan analisis keuang
 
 ## Status implementasi
 
-Versi `0.2.0` menyediakan fondasi data dan transaksi yang dapat dibuild:
+Versi `0.3.0` menyediakan fondasi transaksi, profil, budget, dan analisis yang dapat dibuild:
 
-- Dashboard arus kas bulan berjalan.
-- Pencatatan pemasukan dan pengeluaran lokal dengan tambah, edit, dan hapus.
+- Dashboard arus kas bulan berjalan dan progres target pemasukan.
+- Profil keuangan lokal: nama/panggilan, target pemasukan, dan target tabungan.
+- CRUD pemasukan/pengeluaran dengan tanggal, rekening, kategori, serta catatan.
 - Master rekening dan kategori dengan relasi foreign key.
-- Pencarian transaksi serta filter pemasukan/pengeluaran.
-- Pemilihan tanggal, rekening, dan kategori pada setiap transaksi.
-- Saving rate dan expense ratio.
-- Financial Health Score yang aman terhadap nilai kosong dan pembagian nol.
+- Pencarian dan filter transaksi.
+- Budget bulanan per kategori pengeluaran.
+- Status budget aman, mendekati batas, atau terlampaui.
+- Analisis pengeluaran per bulan: total, rata-rata harian, kategori terbesar, dan komposisi kategori.
+- Saving rate, expense ratio, budget adherence, dan Financial Health Score.
 - Tema navy–emerald dan adaptive launcher icon **Cashflow Orbit**.
 - Kebijakan privasi di dalam aplikasi dan repository.
-- Room Database 2.8.4 dengan migrasi aman dari schema SQLite v1 ke Room v2.
-- Unit test, kompilasi tes migrasi Android, Android lint, dependency review, debug/release CI, serta signed release pipeline.
+- Room Database 2.8.4 dengan migrasi non-destruktif v1 → v2 → v3.
+- Unit test, kompilasi tes migrasi Android, lint, dependency review, debug/release CI, dan signed release pipeline.
 
-Modul workbook Ultimate berikut telah dipetakan untuk iterasi selanjutnya: profil keuangan, budget, tabungan dan dana darurat, cicilan dan utang, snowball, avalanche, target keuangan, cash flow, investasi, simulasi investasi, aset-liabilitas, net worth, financial freedom, dan laporan bulanan.
+Modul berikut telah dipetakan untuk iterasi selanjutnya: tabungan dan dana darurat, target keuangan, cicilan dan utang, snowball, avalanche, investasi, simulasi investasi, aset-liabilitas, net worth, financial freedom, serta laporan bulanan.
 
 Lihat [status proyek](PROJECT_STATUS.md) untuk batas implementasi saat ini.
 
 ## Build lokal
 
-Gunakan JDK 17 dan Android SDK 36.
+Gunakan JDK 17 dan Android SDK 36. Jalankan debug/test terlebih dahulu agar schema Room baru dihasilkan sebelum build release:
 
 ```bash
-./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest assembleRelease
+./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
+./gradlew assembleRelease
 ```
 
-Pada pemanggilan pertama, launcher `gradlew` memasang Gradle Wrapper 9.3.1 dari distribusi resmi melalui HTTPS. File JAR diverifikasi terhadap SHA-256 resmi sebelum dijalankan. Distribusi Gradle juga diverifikasi melalui `distributionSha256Sum` di `gradle-wrapper.properties`.
+Pada pemanggilan pertama, launcher `gradlew` memasang Gradle Wrapper 9.3.1 dari repository resmi melalui HTTPS. File JAR dan distribusi Gradle diverifikasi dengan SHA-256 resmi.
 
 APK debug tersedia di:
 
@@ -83,17 +86,10 @@ Workflow release berjalan saat tag `v*` dibuat atau melalui `workflow_dispatch`.
 - `app-release.apk`
 - `app-release.aab`
 - `SHA256SUMS.txt`
-- laporan lint
-- laporan unit test
+- laporan lint dan unit test
 - dependency report release
 
-Pipeline juga memverifikasi:
-
-- package ID benar,
-- release tidak debuggable,
-- manifest tidak meminta permission,
-- signature APK dan AAB valid,
-- Gradle Wrapper dan distribusi cocok dengan SHA-256 resmi.
+Pipeline memverifikasi package ID, status non-debuggable, permission, signature APK/AAB, serta checksum Gradle Wrapper dan distribusi.
 
 ## Supply-chain dan dependency audit
 
@@ -101,7 +97,7 @@ Pipeline juga memverifikasi:
 - Dependabot memeriksa Gradle dan GitHub Actions setiap minggu.
 - Dependency Review menolak kerentanan baru tingkat `moderate` atau lebih tinggi.
 - Lisensi GPL-3.0 dan AGPL-3.0 ditolak pada dependency review.
-- CI membuat dependency report dan menjalankan Android lint serta unit test.
+- CI membuat dependency report dan menjalankan lint, unit test, debug build, instrumentation-test APK, serta release/R8 build.
 - Repository tidak menyimpan keystore, password, token, atau API key.
 
 ## Distribusi
@@ -114,4 +110,4 @@ Baca [Kebijakan Privasi](docs/PRIVACY_POLICY.md).
 
 ## Lisensi source
 
-Repository dapat dibuat public tanpa otomatis memberikan izin penggunaan ulang. Belum ada lisensi open-source yang dipilih; hak cipta source tetap pada pemilik proyek sampai sebuah file `LICENSE` ditambahkan secara eksplisit.
+Repository public tidak otomatis memberikan izin penggunaan ulang. Belum ada lisensi open-source yang dipilih; hak cipta source tetap pada pemilik proyek sampai file `LICENSE` ditambahkan secara eksplisit.

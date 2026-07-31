@@ -26,6 +26,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -52,23 +53,25 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import id.djawadwipa.kalkulatorkeuangan.model.AccountType
 import id.djawadwipa.kalkulatorkeuangan.model.DashboardSummary
 import id.djawadwipa.kalkulatorkeuangan.model.FinanceAccount
 import id.djawadwipa.kalkulatorkeuangan.model.FinanceCategory
 import id.djawadwipa.kalkulatorkeuangan.model.FinanceTransaction
+import id.djawadwipa.kalkulatorkeuangan.model.FinancialProfile
 import id.djawadwipa.kalkulatorkeuangan.model.TransactionDraft
 import id.djawadwipa.kalkulatorkeuangan.model.TransactionType
 import id.djawadwipa.kalkulatorkeuangan.ui.theme.Emerald
 import id.djawadwipa.kalkulatorkeuangan.ui.theme.Navy
 import java.text.DateFormat
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 private enum class AppTab(val label: String, val symbol: String) {
     HOME("Beranda", "⌂"),
     TRANSACTIONS("Transaksi", "↕"),
+    BUDGET("Budget", "◎"),
     ANALYTICS("Analisis", "▥"),
     MORE("Lainnya", "⋯"),
 }
@@ -108,7 +111,7 @@ fun FinanceApp(viewModel: MainViewModel) {
                     NavigationBarItem(
                         selected = tab == index,
                         onClick = { tab = index },
-                        icon = { Text(item.symbol, fontSize = 20.sp) },
+                        icon = { Text(item.symbol, fontSize = 19.sp) },
                         label = { Text(item.label) },
                     )
                 }
@@ -130,6 +133,7 @@ fun FinanceApp(viewModel: MainViewModel) {
         when (AppTab.entries[tab]) {
             AppTab.HOME -> DashboardScreen(
                 summary = state.summary,
+                profile = state.profile,
                 transactions = state.recentTransactions,
                 modifier = Modifier.padding(padding),
             )
@@ -146,15 +150,27 @@ fun FinanceApp(viewModel: MainViewModel) {
                 modifier = Modifier.padding(padding),
             )
 
+            AppTab.BUDGET -> BudgetScreen(
+                state = state,
+                onPreviousMonth = viewModel::previousMonth,
+                onNextMonth = viewModel::nextMonth,
+                onCurrentMonth = viewModel::selectCurrentMonth,
+                onSaveBudget = viewModel::saveBudget,
+                onDeleteBudget = viewModel::deleteBudget,
+                modifier = Modifier.padding(padding),
+            )
+
             AppTab.ANALYTICS -> AnalyticsScreen(
-                summary = state.summary,
+                state = state,
+                onPreviousMonth = viewModel::previousMonth,
+                onNextMonth = viewModel::nextMonth,
+                onCurrentMonth = viewModel::selectCurrentMonth,
                 modifier = Modifier.padding(padding),
             )
 
             AppTab.MORE -> MoreScreen(
-                accounts = state.accounts,
-                categories = state.categories,
-                hasData = state.recentTransactions.isNotEmpty(),
+                state = state,
+                onSaveProfile = viewModel::saveProfile,
                 onAddAccount = viewModel::addAccount,
                 onAddCategory = viewModel::addCategory,
                 onDemo = viewModel::addDemoData,
@@ -207,6 +223,7 @@ fun FinanceApp(viewModel: MainViewModel) {
 @Composable
 private fun DashboardScreen(
     summary: DashboardSummary,
+    profile: FinancialProfile,
     transactions: List<FinanceTransaction>,
     modifier: Modifier,
 ) {
@@ -217,7 +234,7 @@ private fun DashboardScreen(
     ) {
         item {
             Text(
-                "Ringkasan bulan ini",
+                if (profile.displayName.isBlank()) "Ringkasan bulan ini" else "Halo, ${profile.displayName}",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
             )
@@ -234,7 +251,7 @@ private fun DashboardScreen(
             ) {
                 Column(
                     modifier = Modifier.padding(22.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(7.dp),
                 ) {
                     Text("Arus kas bersih", color = Emerald, fontWeight = FontWeight.SemiBold)
                     Text(
@@ -266,6 +283,28 @@ private fun DashboardScreen(
             ) {
                 MetricCard("Saving rate", percent(summary.savingsRate), Modifier.weight(1f))
                 MetricCard("Health score", "${summary.healthScore}/100", Modifier.weight(1f))
+            }
+        }
+        if (profile.monthlyIncomeTarget > 0L) {
+            item {
+                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("Target pemasukan", fontWeight = FontWeight.Bold)
+                        Text("${rupiah(summary.income)} dari ${rupiah(profile.monthlyIncomeTarget)}")
+                        LinearProgressIndicator(
+                            progress = { (summary.incomeTargetProgress / 100.0).coerceIn(0.0, 1.0).toFloat() },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Text(
+                            "Tercapai ${percent(summary.incomeTargetProgress)} • target tabungan ${profile.savingsTargetPercent}%",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
             }
         }
         item {
@@ -348,149 +387,6 @@ private fun TransactionsScreen(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun AnalyticsScreen(summary: DashboardSummary, modifier: Modifier) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        item {
-            Text(
-                "Analisis",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-        item { MetricCard("Arus kas", rupiah(summary.balance), Modifier.fillMaxWidth()) }
-        item { MetricCard("Saving rate", percent(summary.savingsRate), Modifier.fillMaxWidth()) }
-        item { MetricCard("Expense ratio", percent(summary.expenseRatio), Modifier.fillMaxWidth()) }
-        item {
-            MetricCard(
-                "Financial Health Score",
-                "${summary.healthScore}/100",
-                Modifier.fillMaxWidth(),
-            )
-        }
-    }
-}
-
-@Composable
-private fun MoreScreen(
-    accounts: List<FinanceAccount>,
-    categories: List<FinanceCategory>,
-    hasData: Boolean,
-    onAddAccount: (String, AccountType) -> Unit,
-    onAddCategory: (String, TransactionType) -> Unit,
-    onDemo: () -> Unit,
-    onClear: () -> Unit,
-    modifier: Modifier,
-) {
-    var confirmClear by rememberSaveable { mutableStateOf(false) }
-    var showAccountDialog by rememberSaveable { mutableStateOf(false) }
-    var showCategoryDialog by rememberSaveable { mutableStateOf(false) }
-
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item {
-            Text(
-                "Lainnya",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-            )
-            Text("Offline-first • tanpa iklan • tanpa analytics • tanpa permission sensitif")
-        }
-        item {
-            SectionTitle("Rekening")
-            OutlinedButton(
-                onClick = { showAccountDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Tambah rekening")
-            }
-        }
-        items(accounts, key = { "account-${it.id}" }) { account ->
-            MasterDataRow(account.name, account.type.label)
-        }
-        item {
-            SectionTitle("Kategori")
-            OutlinedButton(
-                onClick = { showCategoryDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Tambah kategori")
-            }
-        }
-        items(categories, key = { "category-${it.id}" }) { category ->
-            MasterDataRow(category.name, category.type.label)
-        }
-        item {
-            SectionTitle("Data lokal")
-            Button(
-                onClick = onDemo,
-                enabled = !hasData,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(if (hasData) "Data contoh hanya untuk database kosong" else "Isi data contoh")
-            }
-        }
-        item {
-            OutlinedButton(
-                onClick = { confirmClear = true },
-                enabled = hasData,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Hapus seluruh transaksi lokal")
-            }
-        }
-        item { Text("Versi 0.2.0 • id.djawadwipa.kalkulatorkeuangan") }
-    }
-
-    if (showAccountDialog) {
-        AddAccountDialog(
-            onDismiss = { showAccountDialog = false },
-            onSave = { name, type ->
-                onAddAccount(name, type)
-                showAccountDialog = false
-            },
-        )
-    }
-    if (showCategoryDialog) {
-        AddCategoryDialog(
-            onDismiss = { showCategoryDialog = false },
-            onSave = { name, type ->
-                onAddCategory(name, type)
-                showCategoryDialog = false
-            },
-        )
-    }
-    if (confirmClear) {
-        AlertDialog(
-            onDismissRequest = { confirmClear = false },
-            title = { Text("Hapus semua transaksi?") },
-            text = { Text("Rekening dan kategori tetap tersimpan. Tindakan ini tidak dapat dibatalkan.") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onClear()
-                        confirmClear = false
-                    },
-                ) {
-                    Text("Hapus")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmClear = false }) {
-                    Text("Batal")
-                }
-            },
-        )
     }
 }
 
@@ -651,7 +547,7 @@ private fun TransactionEditorDialog(
 }
 
 @Composable
-private fun SelectionMenu(
+internal fun SelectionMenu(
     label: String,
     selectedLabel: String,
     options: List<Pair<Long, String>>,
@@ -687,93 +583,7 @@ private fun SelectionMenu(
 }
 
 @Composable
-private fun AddAccountDialog(
-    onDismiss: () -> Unit,
-    onSave: (String, AccountType) -> Unit,
-) {
-    var name by rememberSaveable { mutableStateOf("") }
-    var type by rememberSaveable { mutableStateOf(AccountType.CASH) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Tambah rekening") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it.take(40) },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Nama rekening") },
-                    singleLine = true,
-                )
-                AccountType.entries.chunked(2).forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        row.forEach { option ->
-                            FilterChip(
-                                selected = type == option,
-                                onClick = { type = option },
-                                label = { Text(option.label) },
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                enabled = name.isNotBlank(),
-                onClick = { onSave(name.trim(), type) },
-            ) {
-                Text("Simpan")
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal") } },
-    )
-}
-
-@Composable
-private fun AddCategoryDialog(
-    onDismiss: () -> Unit,
-    onSave: (String, TransactionType) -> Unit,
-) {
-    var name by rememberSaveable { mutableStateOf("") }
-    var type by rememberSaveable { mutableStateOf(TransactionType.EXPENSE) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Tambah kategori") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it.take(40) },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Nama kategori") },
-                    singleLine = true,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TransactionType.entries.forEach { option ->
-                        FilterChip(
-                            selected = type == option,
-                            onClick = { type = option },
-                            label = { Text(option.label) },
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                enabled = name.isNotBlank(),
-                onClick = { onSave(name.trim(), type) },
-            ) {
-                Text("Simpan")
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal") } },
-    )
-}
-
-@Composable
-private fun MetricCard(label: String, value: String, modifier: Modifier) {
+internal fun MetricCard(label: String, value: String, modifier: Modifier) {
     Card(modifier = modifier, shape = RoundedCornerShape(16.dp)) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -846,7 +656,7 @@ private fun TransactionContent(
 }
 
 @Composable
-private fun MasterDataRow(title: String, subtitle: String) {
+internal fun MasterDataRow(title: String, subtitle: String) {
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Text(title, fontWeight = FontWeight.SemiBold)
@@ -856,7 +666,7 @@ private fun MasterDataRow(title: String, subtitle: String) {
 }
 
 @Composable
-private fun EmptyState(text: String) {
+internal fun EmptyState(text: String) {
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
         Text(
             text,
@@ -867,7 +677,7 @@ private fun EmptyState(text: String) {
 }
 
 @Composable
-private fun SectionTitle(text: String) {
+internal fun SectionTitle(text: String) {
     Text(
         text,
         style = MaterialTheme.typography.titleLarge,
@@ -876,16 +686,21 @@ private fun SectionTitle(text: String) {
     )
 }
 
-private fun rupiah(value: Long): String = NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply {
+internal fun rupiah(value: Long): String = NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply {
     minimumFractionDigits = 0
     maximumFractionDigits = 0
 }.format(value)
 
-private fun percent(value: Double): String = NumberFormat.getPercentInstance(Locale("id", "ID")).apply {
+internal fun percent(value: Double): String = NumberFormat.getPercentInstance(Locale("id", "ID")).apply {
     maximumFractionDigits = 1
 }.format(value / 100.0)
 
-private fun formatDate(value: Long): String = DateFormat.getDateInstance(
+internal fun formatDate(value: Long): String = DateFormat.getDateInstance(
     DateFormat.MEDIUM,
     Locale("id", "ID"),
 ).format(Date(value))
+
+internal fun formatMonth(value: Long): String = SimpleDateFormat(
+    "MMMM yyyy",
+    Locale("id", "ID"),
+).format(Date(value.takeIf { it > 0L } ?: System.currentTimeMillis()))
