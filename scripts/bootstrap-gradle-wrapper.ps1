@@ -5,7 +5,7 @@ $ExpectedSha256 = "b3a875ddc1f044746e1b1a55f645584505f4a10438c1afea9f15e92a7c42e
 $ProjectDir = Split-Path -Parent $PSScriptRoot
 $WrapperDir = Join-Path $ProjectDir "gradle\wrapper"
 $WrapperJar = Join-Path $WrapperDir "gradle-wrapper.jar"
-$DownloadUrl = "https://services.gradle.org/distributions/gradle-$GradleVersion-wrapper.jar"
+$DownloadUrl = "https://raw.githubusercontent.com/gradle/gradle/v$GradleVersion/gradle/wrapper/gradle-wrapper.jar"
 
 New-Item -ItemType Directory -Force -Path $WrapperDir | Out-Null
 
@@ -24,7 +24,7 @@ if (Test-Path $WrapperJar) {
 
 $TempFile = "$WrapperJar.tmp.$PID"
 try {
-    Write-Host "Mengunduh Gradle Wrapper $GradleVersion dari distribusi resmi..."
+    Write-Host "Mengunduh Gradle Wrapper $GradleVersion dari repository resmi Gradle..."
     Invoke-WebRequest -Uri $DownloadUrl -OutFile $TempFile -MaximumRedirection 10
     Assert-WrapperChecksum $TempFile
     Move-Item -Force $TempFile $WrapperJar

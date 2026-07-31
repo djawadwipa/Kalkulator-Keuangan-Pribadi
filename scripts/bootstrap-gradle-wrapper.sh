@@ -7,7 +7,7 @@ SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 PROJECT_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 WRAPPER_DIR="$PROJECT_DIR/gradle/wrapper"
 WRAPPER_JAR="$WRAPPER_DIR/gradle-wrapper.jar"
-DOWNLOAD_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-wrapper.jar"
+DOWNLOAD_URL="https://raw.githubusercontent.com/gradle/gradle/v${GRADLE_VERSION}/gradle/wrapper/gradle-wrapper.jar"
 
 mkdir -p "$WRAPPER_DIR"
 
@@ -39,7 +39,7 @@ fi
 TMP_FILE="$WRAPPER_JAR.tmp.$$"
 trap 'rm -f "$TMP_FILE"' EXIT INT TERM
 
-echo "Mengunduh Gradle Wrapper $GRADLE_VERSION dari distribusi resmi..."
+echo "Mengunduh Gradle Wrapper $GRADLE_VERSION dari repository resmi Gradle..."
 if command -v curl >/dev/null 2>&1; then
     curl --fail --location --silent --show-error \
         --proto '=https' --tlsv1.2 \
