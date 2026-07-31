@@ -16,6 +16,12 @@ interface FinanceDao {
     @Query("SELECT * FROM categories ORDER BY type, name COLLATE NOCASE")
     fun observeCategories(): Flow<List<CategoryEntity>>
 
+    @Query("SELECT * FROM financial_profile WHERE id = 1 LIMIT 1")
+    fun observeProfile(): Flow<FinancialProfileEntity?>
+
+    @Query("SELECT * FROM financial_profile WHERE id = 1 LIMIT 1")
+    suspend fun getProfile(): FinancialProfileEntity?
+
     @Transaction
     @Query(
         """
@@ -43,6 +49,47 @@ interface FinanceDao {
     )
     fun observeTransactions(query: String, type: String?): Flow<List<TransactionRecord>>
 
+    @Query(
+        """
+        SELECT
+            b.id,
+            b.month_start,
+            b.category_id,
+            c.name AS category_name,
+            b.limit_amount,
+            COALESCE(SUM(t.amount), 0) AS spent_amount
+        FROM budgets b
+        INNER JOIN categories c ON c.id = b.category_id
+        LEFT JOIN transactions t
+            ON t.category_id = b.category_id
+            AND t.type = 'EXPENSE'
+            AND t.occurred_at >= :monthStart
+            AND t.occurred_at < :nextMonthStart
+        WHERE b.month_start = :monthStart
+        GROUP BY b.id, b.month_start, b.category_id, c.name, b.limit_amount
+        ORDER BY c.name COLLATE NOCASE
+        """,
+    )
+    fun observeBudgets(monthStart: Long, nextMonthStart: Long): Flow<List<BudgetRecord>>
+
+    @Query(
+        """
+        SELECT
+            c.id AS category_id,
+            c.name AS category_name,
+            COALESCE(SUM(t.amount), 0) AS amount
+        FROM transactions t
+        INNER JOIN categories c ON c.id = t.category_id
+        WHERE t.type = 'EXPENSE'
+            AND t.occurred_at >= :monthStart
+            AND t.occurred_at < :nextMonthStart
+        GROUP BY c.id, c.name
+        HAVING amount > 0
+        ORDER BY amount DESC, c.name COLLATE NOCASE
+        """,
+    )
+    fun observeCategorySpending(monthStart: Long, nextMonthStart: Long): Flow<List<CategorySpendingRecord>>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAccount(account: AccountEntity): Long
 
@@ -52,6 +99,12 @@ interface FinanceDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertTransaction(transaction: TransactionEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertBudget(budget: BudgetEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveProfile(profile: FinancialProfileEntity)
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAccounts(accounts: List<AccountEntity>): List<Long>
 
@@ -60,6 +113,15 @@ interface FinanceDao {
 
     @Update
     suspend fun updateTransaction(transaction: TransactionEntity)
+
+    @Update
+    suspend fun updateBudget(budget: BudgetEntity)
+
+    @Query("SELECT id FROM budgets WHERE month_start = :monthStart AND category_id = :categoryId LIMIT 1")
+    suspend fun findBudgetId(monthStart: Long, categoryId: Long): Long?
+
+    @Query("DELETE FROM budgets WHERE id = :id")
+    suspend fun deleteBudgetById(id: Long)
 
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun deleteTransactionById(id: Long)
@@ -78,6 +140,9 @@ interface FinanceDao {
 
     @Query("SELECT * FROM categories WHERE name = :name AND type = :type LIMIT 1")
     suspend fun findCategory(name: String, type: String): CategoryEntity?
+
+    @Query("SELECT * FROM categories WHERE id = :id LIMIT 1")
+    suspend fun findCategoryById(id: Long): CategoryEntity?
 
     @Query("SELECT COUNT(*) FROM transactions")
     suspend fun transactionCount(): Int
