@@ -1,18 +1,28 @@
 package id.djawadwipa.kalkulatorkeuangan.data
 
 import id.djawadwipa.kalkulatorkeuangan.data.local.AccountEntity
+import id.djawadwipa.kalkulatorkeuangan.data.local.BudgetEntity
+import id.djawadwipa.kalkulatorkeuangan.data.local.BudgetRecord
 import id.djawadwipa.kalkulatorkeuangan.data.local.CategoryEntity
+import id.djawadwipa.kalkulatorkeuangan.data.local.CategorySpendingRecord
 import id.djawadwipa.kalkulatorkeuangan.data.local.FinanceDao
+import id.djawadwipa.kalkulatorkeuangan.data.local.FinancialProfileEntity
 import id.djawadwipa.kalkulatorkeuangan.data.local.TransactionEntity
 import id.djawadwipa.kalkulatorkeuangan.data.local.TransactionRecord
+import id.djawadwipa.kalkulatorkeuangan.domain.BudgetCalculator
 import id.djawadwipa.kalkulatorkeuangan.domain.FinancialCalculator
 import id.djawadwipa.kalkulatorkeuangan.domain.TransactionValidator
 import id.djawadwipa.kalkulatorkeuangan.model.AccountType
+import id.djawadwipa.kalkulatorkeuangan.model.BudgetItem
+import id.djawadwipa.kalkulatorkeuangan.model.BudgetSummary
 import id.djawadwipa.kalkulatorkeuangan.model.DashboardSummary
 import id.djawadwipa.kalkulatorkeuangan.model.FinanceAccount
 import id.djawadwipa.kalkulatorkeuangan.model.FinanceCategory
 import id.djawadwipa.kalkulatorkeuangan.model.FinanceTransaction
 import id.djawadwipa.kalkulatorkeuangan.model.FinancialHealthInput
+import id.djawadwipa.kalkulatorkeuangan.model.FinancialProfile
+import id.djawadwipa.kalkulatorkeuangan.model.FinancialProfileDraft
+import id.djawadwipa.kalkulatorkeuangan.model.MonthlyAnalysis
 import id.djawadwipa.kalkulatorkeuangan.model.TransactionDraft
 import id.djawadwipa.kalkulatorkeuangan.model.TransactionType
 import java.util.Calendar
@@ -21,6 +31,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -32,6 +44,10 @@ class FinanceRepository(
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val searchQuery = MutableStateFlow("")
     private val typeFilter = MutableStateFlow<TransactionType?>(null)
+    private val _selectedMonthStart = MutableStateFlow(monthStart(System.currentTimeMillis()))
+    private val currentMonthStart = monthStart(System.currentTimeMillis())
+
+    val selectedMonthStart: StateFlow<Long> = _selectedMonthStart.asStateFlow()
 
     val accounts: Flow<List<FinanceAccount>> = dao.observeActiveAccounts().map { rows ->
         rows.map(AccountEntity::toModel)
@@ -39,6 +55,10 @@ class FinanceRepository(
 
     val categories: Flow<List<FinanceCategory>> = dao.observeCategories().map { rows ->
         rows.map(CategoryEntity::toModel)
+    }
+
+    val profile: Flow<FinancialProfile> = dao.observeProfile().map { row ->
+        row?.toModel() ?: FinancialProfile()
     }
 
     val allTransactions: Flow<List<FinanceTransaction>> =
@@ -50,7 +70,41 @@ class FinanceRepository(
         dao.observeTransactions(query = query, type = type)
     }.map { rows -> rows.map(TransactionRecord::toModel) }
 
-    val summary: Flow<DashboardSummary> = allTransactions.map(::calculateSummary)
+    val budgetSummary: Flow<BudgetSummary> = _selectedMonthStart.flatMapLatest { month ->
+        dao.observeBudgets(month, nextMonthStart(month)).map { rows ->
+            BudgetCalculator.summary(month, rows.map(BudgetRecord::toModel))
+        }
+    }
+
+    val monthlyAnalysis: Flow<MonthlyAnalysis> = combine(
+        _selectedMonthStart,
+        budgetSummary,
+    ) { month, budget -> month to budget }
+        .flatMapLatest { (month, budget) ->
+            dao.observeCategorySpending(month, nextMonthStart(month)).map { rows ->
+                BudgetCalculator.monthlyAnalysis(
+                    monthStart = month,
+                    dayOfMonth = analysisDayCount(month),
+                    spending = rows.map(CategorySpendingRecord::toAnalysisPair),
+                    budget = budget,
+                )
+            }
+        }
+
+    private val currentBudgetSummary: Flow<BudgetSummary> = dao.observeBudgets(
+        currentMonthStart,
+        nextMonthStart(currentMonthStart),
+    ).map { rows ->
+        BudgetCalculator.summary(currentMonthStart, rows.map(BudgetRecord::toModel))
+    }
+
+    val summary: Flow<DashboardSummary> = combine(
+        allTransactions,
+        currentBudgetSummary,
+        profile,
+    ) { transactionRows, budget, financialProfile ->
+        calculateSummary(transactionRows, budget, financialProfile)
+    }
 
     init {
         repositoryScope.launch { seedMasterData() }
@@ -62,6 +116,56 @@ class FinanceRepository(
 
     fun setTypeFilter(type: TransactionType?) {
         typeFilter.value = type
+    }
+
+    fun previousMonth() {
+        _selectedMonthStart.value = shiftMonth(_selectedMonthStart.value, -1)
+    }
+
+    fun nextMonth() {
+        _selectedMonthStart.value = shiftMonth(_selectedMonthStart.value, 1)
+    }
+
+    fun selectCurrentMonth() {
+        _selectedMonthStart.value = monthStart(System.currentTimeMillis())
+    }
+
+    suspend fun saveProfile(draft: FinancialProfileDraft) {
+        val error = BudgetCalculator.validateProfile(draft)
+        require(error == null) { error.orEmpty() }
+        dao.saveProfile(
+            FinancialProfileEntity(
+                displayName = draft.displayName.trim(),
+                monthlyIncomeTarget = draft.monthlyIncomeTarget,
+                savingsTargetPercent = draft.savingsTargetPercent,
+                currencyCode = "IDR",
+                updatedAt = System.currentTimeMillis(),
+            ),
+        )
+    }
+
+    suspend fun saveBudget(selectedMonthStart: Long, categoryId: Long, limitAmount: Long) {
+        val error = BudgetCalculator.validateBudget(categoryId, limitAmount)
+        require(error == null) { error.orEmpty() }
+        val category = requireNotNull(dao.findCategoryById(categoryId)) { "Kategori tidak ditemukan" }
+        require(category.type == TransactionType.EXPENSE.name) { "Budget hanya dapat dibuat untuk kategori pengeluaran" }
+
+        val normalizedMonth = monthStart(selectedMonthStart)
+        val now = System.currentTimeMillis()
+        val existingId = dao.findBudgetId(normalizedMonth, categoryId)
+        val entity = BudgetEntity(
+            id = existingId ?: 0,
+            monthStart = normalizedMonth,
+            categoryId = categoryId,
+            limitAmount = limitAmount,
+            updatedAt = now,
+        )
+        if (existingId == null) dao.insertBudget(entity) else dao.updateBudget(entity)
+    }
+
+    suspend fun deleteBudget(id: Long) {
+        require(id > 0L) { "ID budget tidak valid" }
+        dao.deleteBudgetById(id)
     }
 
     suspend fun addTransaction(draft: TransactionDraft) {
@@ -98,6 +202,13 @@ class FinanceRepository(
         seedMasterData()
         if (dao.transactionCount() > 0) return
 
+        saveProfile(
+            FinancialProfileDraft(
+                displayName = "Pengguna",
+                monthlyIncomeTarget = 12_500_000,
+                savingsTargetPercent = 20,
+            ),
+        )
         val account = requireNotNull(dao.firstActiveAccount())
         val now = System.currentTimeMillis()
         val samples = listOf(
@@ -121,6 +232,14 @@ class FinanceRepository(
                 ),
             )
         }
+        listOf(
+            "Makanan" to 2_000_000L,
+            "Transportasi" to 1_000_000L,
+            "Tempat Tinggal" to 3_000_000L,
+        ).forEach { (name, amount) ->
+            val category = requireNotNull(dao.findCategory(name, TransactionType.EXPENSE.name))
+            saveBudget(currentMonthStart, category.id, amount)
+        }
     }
 
     suspend fun clearAllTransactions() {
@@ -138,6 +257,13 @@ class FinanceRepository(
             )
         }
         dao.insertCategories(DEFAULT_CATEGORIES)
+        if (dao.getProfile() == null) {
+            dao.saveProfile(
+                FinancialProfileEntity(
+                    updatedAt = System.currentTimeMillis(),
+                ),
+            )
+        }
     }
 
     private fun requireValid(draft: TransactionDraft) {
@@ -145,29 +271,39 @@ class FinanceRepository(
         require(error == null) { error.orEmpty() }
     }
 
-    private fun calculateSummary(transactions: List<FinanceTransaction>): DashboardSummary {
-        val monthStart = Calendar.getInstance().apply {
-            set(Calendar.DAY_OF_MONTH, 1)
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-
-        val currentMonth = transactions.filter { it.occurredAt >= monthStart }
+    private fun calculateSummary(
+        transactions: List<FinanceTransaction>,
+        budget: BudgetSummary,
+        profile: FinancialProfile,
+    ): DashboardSummary {
+        val nextMonth = nextMonthStart(currentMonthStart)
+        val currentMonth = transactions.filter {
+            it.occurredAt >= currentMonthStart && it.occurredAt < nextMonth
+        }
         val income = currentMonth.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
         val expense = currentMonth.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+        val savingsRate = FinancialCalculator.savingsRate(income, expense)
 
         return DashboardSummary(
             income = income,
             expense = expense,
             balance = income - expense,
-            savingsRate = FinancialCalculator.savingsRate(income, expense),
+            savingsRate = savingsRate,
             expenseRatio = FinancialCalculator.expenseRatio(income, expense),
             healthScore = FinancialCalculator.healthScore(
-                FinancialHealthInput(income = income, expense = expense),
+                FinancialHealthInput(
+                    income = income,
+                    expense = expense,
+                    budgetAdherence = budget.adherencePercent,
+                ),
             ),
             transactionCount = currentMonth.size,
+            incomeTargetProgress = if (profile.monthlyIncomeTarget <= 0L) {
+                0.0
+            } else {
+                income.toDouble() / profile.monthlyIncomeTarget * 100.0
+            },
+            savingsTargetGap = profile.savingsTargetPercent - savingsRate,
         )
     }
 
@@ -216,6 +352,14 @@ private fun CategoryEntity.toModel(): FinanceCategory = FinanceCategory(
     isDefault = isDefault,
 )
 
+private fun FinancialProfileEntity.toModel(): FinancialProfile = FinancialProfile(
+    displayName = displayName,
+    monthlyIncomeTarget = monthlyIncomeTarget,
+    savingsTargetPercent = savingsTargetPercent,
+    currencyCode = currencyCode,
+    updatedAt = updatedAt,
+)
+
 private fun TransactionRecord.toModel(): FinanceTransaction = FinanceTransaction(
     id = id,
     type = TransactionType.valueOf(type),
@@ -228,6 +372,18 @@ private fun TransactionRecord.toModel(): FinanceTransaction = FinanceTransaction
     occurredAt = occurredAt,
 )
 
+private fun BudgetRecord.toModel(): BudgetItem = BudgetCalculator.budgetItem(
+    id = id,
+    monthStart = monthStart,
+    categoryId = categoryId,
+    categoryName = categoryName,
+    limitAmount = limitAmount,
+    spentAmount = spentAmount,
+)
+
+private fun CategorySpendingRecord.toAnalysisPair(): Pair<Pair<Long, String>, Long> =
+    (categoryId to categoryName) to amount
+
 private fun TransactionDraft.toEntity(id: Long = 0): TransactionEntity = TransactionEntity(
     id = id,
     type = type.name,
@@ -237,3 +393,37 @@ private fun TransactionDraft.toEntity(id: Long = 0): TransactionEntity = Transac
     description = description.trim(),
     occurredAt = occurredAt,
 )
+
+private fun monthStart(timestamp: Long): Long = Calendar.getInstance().apply {
+    timeInMillis = timestamp
+    set(Calendar.DAY_OF_MONTH, 1)
+    set(Calendar.HOUR_OF_DAY, 0)
+    set(Calendar.MINUTE, 0)
+    set(Calendar.SECOND, 0)
+    set(Calendar.MILLISECOND, 0)
+}.timeInMillis
+
+private fun nextMonthStart(monthStart: Long): Long = shiftMonth(monthStart, 1)
+
+private fun shiftMonth(monthStart: Long, amount: Int): Long = Calendar.getInstance().apply {
+    timeInMillis = monthStart
+    add(Calendar.MONTH, amount)
+    set(Calendar.DAY_OF_MONTH, 1)
+    set(Calendar.HOUR_OF_DAY, 0)
+    set(Calendar.MINUTE, 0)
+    set(Calendar.SECOND, 0)
+    set(Calendar.MILLISECOND, 0)
+}.timeInMillis
+
+private fun analysisDayCount(monthStart: Long): Int {
+    val selected = Calendar.getInstance().apply { timeInMillis = monthStart }
+    val now = Calendar.getInstance()
+    return if (
+        selected.get(Calendar.YEAR) == now.get(Calendar.YEAR) &&
+        selected.get(Calendar.MONTH) == now.get(Calendar.MONTH)
+    ) {
+        now.get(Calendar.DAY_OF_MONTH)
+    } else {
+        selected.getActualMaximum(Calendar.DAY_OF_MONTH)
+    }
+}
