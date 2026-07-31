@@ -12,6 +12,12 @@ enum class AccountType(val label: String) {
     OTHER("Lainnya"),
 }
 
+enum class BudgetStatus(val label: String) {
+    SAFE("Aman"),
+    WARNING("Mendekati batas"),
+    EXCEEDED("Melebihi budget"),
+}
+
 data class FinanceAccount(
     val id: Long,
     val name: String,
@@ -48,6 +54,59 @@ data class TransactionDraft(
     val occurredAt: Long,
 )
 
+data class FinancialProfile(
+    val displayName: String = "",
+    val monthlyIncomeTarget: Long = 0,
+    val savingsTargetPercent: Int = 20,
+    val currencyCode: String = "IDR",
+    val updatedAt: Long = 0,
+)
+
+data class FinancialProfileDraft(
+    val displayName: String,
+    val monthlyIncomeTarget: Long,
+    val savingsTargetPercent: Int,
+)
+
+data class BudgetItem(
+    val id: Long,
+    val monthStart: Long,
+    val categoryId: Long,
+    val categoryName: String,
+    val limitAmount: Long,
+    val spentAmount: Long,
+    val remainingAmount: Long,
+    val utilizationPercent: Double,
+    val status: BudgetStatus,
+)
+
+data class BudgetSummary(
+    val monthStart: Long = 0,
+    val items: List<BudgetItem> = emptyList(),
+    val totalBudget: Long = 0,
+    val totalSpent: Long = 0,
+    val remaining: Long = 0,
+    val utilizationPercent: Double = 0.0,
+    val adherencePercent: Double = 0.0,
+)
+
+data class ExpenseCategorySummary(
+    val categoryId: Long,
+    val categoryName: String,
+    val amount: Long,
+    val sharePercent: Double,
+)
+
+data class MonthlyAnalysis(
+    val monthStart: Long = 0,
+    val totalExpense: Long = 0,
+    val averageDailyExpense: Long = 0,
+    val topCategoryName: String = "Belum ada data",
+    val topCategoryAmount: Long = 0,
+    val categories: List<ExpenseCategorySummary> = emptyList(),
+    val budget: BudgetSummary = BudgetSummary(),
+)
+
 data class DashboardSummary(
     val income: Long = 0,
     val expense: Long = 0,
@@ -56,6 +115,8 @@ data class DashboardSummary(
     val expenseRatio: Double = 0.0,
     val healthScore: Int = 0,
     val transactionCount: Int = 0,
+    val incomeTargetProgress: Double = 0.0,
+    val savingsTargetGap: Double = 0.0,
 )
 
 data class FinancialHealthInput(
