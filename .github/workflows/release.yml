@@ -15,8 +15,8 @@ concurrency:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
 
     steps:
       - name: Checkout
@@ -28,13 +28,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Install Android SDK 37
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(command -v sdkmanager)"
+          fi
+          "$SDKMANAGER" "platform-tools" "platforms;android-37" "build-tools;36.0.0"
+
       - name: Bootstrap checksum-verified Gradle Wrapper
         run: ./scripts/bootstrap-gradle-wrapper.sh
 
-      - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
-
-      - name: Set up Gradle
+      - name: Set up Gradle and validate Wrapper
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
 
       - name: Validate signing secrets
@@ -68,15 +75,20 @@ jobs:
         run: ./gradlew --no-daemon :app:dependencies --configuration releaseRuntimeClasspath > dependency-report-release.txt
 
       - name: Verify release properties
+        shell: bash
         run: |
+          set -euo pipefail
           APK="app/build/outputs/apk/release/app-release.apk"
           AAB="app/build/outputs/bundle/release/app-release.aab"
           test -f "$APK"
           test -f "$AAB"
           test "$(apkanalyzer manifest application-id "$APK")" = "id.djawadwipa.kalkulatorkeuangan"
           test "$(apkanalyzer manifest debuggable "$APK")" = "false"
-          test -z "$(apkanalyzer manifest permissions "$APK")"
-          jarsigner -verify -strict "$APK"
+          if apkanalyzer manifest print "$APK" | grep -q '<uses-permission'; then
+            echo "Unexpected Android permission found in release APK" >&2
+            exit 1
+          fi
+          apksigner verify --verbose --print-certs "$APK"
           jarsigner -verify -strict "$AAB"
 
       - name: Create SHA-256 checksums

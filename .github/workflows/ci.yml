@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,8 +16,8 @@ concurrency:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
 
     steps:
       - name: Checkout
@@ -28,13 +29,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Install Android SDK 37
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(command -v sdkmanager)"
+          fi
+          "$SDKMANAGER" "platform-tools" "platforms;android-37" "build-tools;36.0.0"
+
       - name: Bootstrap checksum-verified Gradle Wrapper
         run: ./scripts/bootstrap-gradle-wrapper.sh
 
-      - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
-
-      - name: Set up Gradle
+      - name: Set up Gradle and validate Wrapper
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
@@ -43,7 +51,7 @@ jobs:
         run: ./gradlew --no-daemon --stacktrace testDebugUnitTest lintDebug assembleDebug
 
       - name: Generate dependency report
-        if: always()
+        if: success()
         run: ./gradlew --no-daemon :app:dependencies --configuration debugRuntimeClasspath > dependency-report.txt
 
       - name: Upload verification reports
