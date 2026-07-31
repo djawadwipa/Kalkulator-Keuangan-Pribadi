@@ -12,8 +12,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AccountEntity::class,
         CategoryEntity::class,
         TransactionEntity::class,
+        FinancialProfileEntity::class,
+        BudgetEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class FinanceDatabase : RoomDatabase() {
@@ -104,6 +106,47 @@ abstract class FinanceDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `financial_profile` (
+                        `id` INTEGER NOT NULL,
+                        `display_name` TEXT NOT NULL,
+                        `monthly_income_target` INTEGER NOT NULL,
+                        `savings_target_percent` INTEGER NOT NULL,
+                        `currency_code` TEXT NOT NULL,
+                        `updated_at` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO financial_profile(
+                        id, display_name, monthly_income_target, savings_target_percent, currency_code, updated_at
+                    ) VALUES (1, '', 0, 20, 'IDR', 0)
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `budgets` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `month_start` INTEGER NOT NULL,
+                        `category_id` INTEGER NOT NULL,
+                        `limit_amount` INTEGER NOT NULL,
+                        `updated_at` INTEGER NOT NULL,
+                        FOREIGN KEY(`category_id`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_budgets_category_id` ON `budgets` (`category_id`)")
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_budgets_month_start_category_id` ON `budgets` (`month_start`, `category_id`)",
+                )
+            }
+        }
+
         @Volatile
         private var instance: FinanceDatabase? = null
 
@@ -113,7 +156,7 @@ abstract class FinanceDatabase : RoomDatabase() {
                 FinanceDatabase::class.java,
                 DATABASE_NAME,
             )
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
                 .also { instance = it }
         }
