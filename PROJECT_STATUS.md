@@ -5,7 +5,7 @@
 - Nama aplikasi: **Kalkulator Keuangan Pribadi**
 - Package ID: `id.djawadwipa.kalkulatorkeuangan`
 - Repository target: public
-- Repository name: `Kalkulator-Keuangan-Pribadi-Android`
+- Repository name: `Kalkulator-Keuangan-Pribadi`
 - Logo: **Cashflow Orbit**, navy `#0F172A` dan emerald `#10B981`
 - Platform: Android native Kotlin + Jetpack Compose
 
@@ -13,7 +13,6 @@
 
 - Dashboard arus kas bulan berjalan.
 - Input dan penyimpanan transaksi pemasukan/pengeluaran lokal.
-- Filter transaksi.
 - Saving rate, expense ratio, dan Financial Health Score.
 - SQLite privat perangkat.
 - Tema Material 3 navy–emerald dan adaptive launcher icon.
