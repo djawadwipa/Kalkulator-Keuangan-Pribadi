@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -262,7 +261,8 @@ private fun AddTransactionDialog(
     var amount by rememberSaveable { mutableStateOf("") }
     var category by rememberSaveable { mutableStateOf("") }
     var note by rememberSaveable { mutableStateOf("") }
-    val amountValue = amount.toLongOrNull() ?: 0L
+    val parsedAmount = amount.filter(Char::isDigit).toLongOrNull()
+    val valid = parsedAmount != null && parsedAmount > 0 && category.trim().isNotEmpty()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -270,29 +270,48 @@ private fun AddTransactionDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(type == TransactionType.INCOME, { type = TransactionType.INCOME }, { Text("Pemasukan") })
-                    FilterChip(type == TransactionType.EXPENSE, { type = TransactionType.EXPENSE }, { Text("Pengeluaran") })
+                    FilterChip(
+                        selected = type == TransactionType.EXPENSE,
+                        onClick = { type = TransactionType.EXPENSE },
+                        label = { Text("Pengeluaran") },
+                    )
+                    FilterChip(
+                        selected = type == TransactionType.INCOME,
+                        onClick = { type = TransactionType.INCOME },
+                        label = { Text("Pemasukan") },
+                    )
                 }
                 OutlinedTextField(
-                    value = amount, onValueChange = { amount = it.filter(Char::isDigit).take(15) },
-                    label = { Text("Jumlah (Rp)") }, singleLine = true,
+                    value = amount,
+                    onValueChange = { amount = it.filter(Char::isDigit).take(15) },
+                    label = { Text("Nominal (Rp)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
                 )
-                OutlinedTextField(category, { category = it.take(40) }, label = { Text("Kategori") }, singleLine = true)
-                OutlinedTextField(note, { note = it.take(120) }, label = { Text("Catatan") })
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = { category = it.take(40) },
+                    label = { Text("Kategori") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = note,
+                    onValueChange = { note = it.take(120) },
+                    label = { Text("Catatan opsional") },
+                )
             }
         },
         confirmButton = {
             Button(
-                onClick = { onSave(type, amountValue, category.trim(), note.trim()) },
-                enabled = amountValue > 0 && category.isNotBlank(),
+                enabled = valid,
+                onClick = { onSave(type, requireNotNull(parsedAmount), category.trim(), note.trim()) },
             ) { Text("Simpan") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Batal") } },
     )
 }
 
-private fun rupiah(value: Long): String = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
-    .apply { maximumFractionDigits = 0 }.format(value)
-
-private fun percent(value: Double): String = String.format(Locale("id", "ID"), "%.1f%%", value)
+private fun rupiah(value: Long): String = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(value)
+private fun percent(value: Double): String = NumberFormat.getPercentInstance(Locale("id", "ID")).apply {
+    maximumFractionDigits = 1
+}.format(value / 100.0)
