@@ -2,7 +2,7 @@ package id.djawadwipa.kalkulatorkeuangan
 
 import android.app.Application
 import id.djawadwipa.kalkulatorkeuangan.data.FinanceRepository
-import id.djawadwipa.kalkulatorkeuangan.data.local.FinanceDatabaseHelper
+import id.djawadwipa.kalkulatorkeuangan.data.local.FinanceDatabase
 
 class FinanceApplication : Application() {
     lateinit var repository: FinanceRepository
@@ -10,6 +10,7 @@ class FinanceApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        repository = FinanceRepository(FinanceDatabaseHelper(this))
+        val database = FinanceDatabase.getInstance(this)
+        repository = FinanceRepository(database.financeDao())
     }
 }
