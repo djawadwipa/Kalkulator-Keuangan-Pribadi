@@ -5,10 +5,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import id.djawadwipa.kalkulatorkeuangan.data.FinanceRepository
 import id.djawadwipa.kalkulatorkeuangan.model.AccountType
+import id.djawadwipa.kalkulatorkeuangan.model.BudgetSummary
 import id.djawadwipa.kalkulatorkeuangan.model.DashboardSummary
 import id.djawadwipa.kalkulatorkeuangan.model.FinanceAccount
 import id.djawadwipa.kalkulatorkeuangan.model.FinanceCategory
 import id.djawadwipa.kalkulatorkeuangan.model.FinanceTransaction
+import id.djawadwipa.kalkulatorkeuangan.model.FinancialProfile
+import id.djawadwipa.kalkulatorkeuangan.model.FinancialProfileDraft
+import id.djawadwipa.kalkulatorkeuangan.model.MonthlyAnalysis
 import id.djawadwipa.kalkulatorkeuangan.model.TransactionDraft
 import id.djawadwipa.kalkulatorkeuangan.model.TransactionType
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,26 +28,48 @@ class MainViewModel(
     private val typeFilter = MutableStateFlow<TransactionType?>(null)
     private val message = MutableStateFlow<String?>(null)
 
-    private val financeData = combine(
+    private val coreData = combine(
         repository.transactions,
+        repository.allTransactions,
         repository.summary,
         repository.accounts,
         repository.categories,
-    ) { transactions, summary, accounts, categories ->
-        FinanceData(transactions, summary, accounts, categories)
+    ) { transactions, allTransactions, summary, accounts, categories ->
+        CoreFinanceData(
+            transactions = transactions,
+            allTransactions = allTransactions,
+            summary = summary,
+            accounts = accounts,
+            categories = categories,
+        )
     }
 
-    private val completeFinanceData = combine(financeData, repository.allTransactions) { data, allTransactions ->
-        data.copy(allTransactions = allTransactions)
+    private val planningData = combine(
+        repository.profile,
+        repository.budgetSummary,
+        repository.monthlyAnalysis,
+        repository.selectedMonthStart,
+    ) { profile, budget, analysis, selectedMonth ->
+        PlanningData(profile, budget, analysis, selectedMonth)
     }
 
-    val uiState = combine(completeFinanceData, searchQuery, typeFilter, message) { data, query, filter, notice ->
+    val uiState = combine(
+        coreData,
+        planningData,
+        searchQuery,
+        typeFilter,
+        message,
+    ) { core, planning, query, filter, notice ->
         FinanceUiState(
-            transactions = data.transactions,
-            recentTransactions = data.allTransactions,
-            summary = data.summary,
-            accounts = data.accounts,
-            categories = data.categories,
+            transactions = core.transactions,
+            recentTransactions = core.allTransactions,
+            summary = core.summary,
+            accounts = core.accounts,
+            categories = core.categories,
+            profile = planning.profile,
+            budgetSummary = planning.budget,
+            monthlyAnalysis = planning.analysis,
+            selectedMonthStart = planning.selectedMonth,
             searchQuery = query,
             typeFilter = filter,
             message = notice,
@@ -64,6 +90,24 @@ class MainViewModel(
     fun setTypeFilter(value: TransactionType?) {
         typeFilter.value = value
         repository.setTypeFilter(value)
+    }
+
+    fun previousMonth() = repository.previousMonth()
+
+    fun nextMonth() = repository.nextMonth()
+
+    fun selectCurrentMonth() = repository.selectCurrentMonth()
+
+    fun saveProfile(draft: FinancialProfileDraft) = runAction("Profil keuangan berhasil disimpan") {
+        repository.saveProfile(draft)
+    }
+
+    fun saveBudget(categoryId: Long, limitAmount: Long) = runAction("Budget berhasil disimpan") {
+        repository.saveBudget(uiState.value.selectedMonthStart, categoryId, limitAmount)
+    }
+
+    fun deleteBudget(id: Long) = runAction("Budget berhasil dihapus") {
+        repository.deleteBudget(id)
     }
 
     fun addTransaction(draft: TransactionDraft) = runAction("Transaksi berhasil disimpan") {
@@ -120,12 +164,19 @@ class MainViewModel(
     }
 }
 
-private data class FinanceData(
+private data class CoreFinanceData(
     val transactions: List<FinanceTransaction>,
+    val allTransactions: List<FinanceTransaction>,
     val summary: DashboardSummary,
     val accounts: List<FinanceAccount>,
     val categories: List<FinanceCategory>,
-    val allTransactions: List<FinanceTransaction> = emptyList(),
+)
+
+private data class PlanningData(
+    val profile: FinancialProfile,
+    val budget: BudgetSummary,
+    val analysis: MonthlyAnalysis,
+    val selectedMonth: Long,
 )
 
 data class FinanceUiState(
@@ -134,6 +185,10 @@ data class FinanceUiState(
     val summary: DashboardSummary = DashboardSummary(),
     val accounts: List<FinanceAccount> = emptyList(),
     val categories: List<FinanceCategory> = emptyList(),
+    val profile: FinancialProfile = FinancialProfile(),
+    val budgetSummary: BudgetSummary = BudgetSummary(),
+    val monthlyAnalysis: MonthlyAnalysis = MonthlyAnalysis(),
+    val selectedMonthStart: Long = 0,
     val searchQuery: String = "",
     val typeFilter: TransactionType? = null,
     val message: String? = null,
