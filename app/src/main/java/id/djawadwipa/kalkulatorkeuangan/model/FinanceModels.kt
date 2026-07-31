@@ -1,15 +1,49 @@
 package id.djawadwipa.kalkulatorkeuangan.model
 
-enum class TransactionType {
-    INCOME,
-    EXPENSE,
+enum class TransactionType(val label: String) {
+    INCOME("Pemasukan"),
+    EXPENSE("Pengeluaran"),
 }
+
+enum class AccountType(val label: String) {
+    CASH("Tunai"),
+    BANK("Bank"),
+    EWALLET("E-Wallet"),
+    OTHER("Lainnya"),
+}
+
+data class FinanceAccount(
+    val id: Long,
+    val name: String,
+    val type: AccountType,
+    val openingBalance: Long = 0,
+    val isArchived: Boolean = false,
+)
+
+data class FinanceCategory(
+    val id: Long,
+    val name: String,
+    val type: TransactionType,
+    val isDefault: Boolean = false,
+)
 
 data class FinanceTransaction(
     val id: Long,
     val type: TransactionType,
     val amount: Long,
-    val category: String,
+    val accountId: Long,
+    val accountName: String,
+    val categoryId: Long,
+    val categoryName: String,
+    val description: String,
+    val occurredAt: Long,
+)
+
+data class TransactionDraft(
+    val type: TransactionType,
+    val amount: Long,
+    val accountId: Long,
+    val categoryId: Long,
     val description: String,
     val occurredAt: Long,
 )

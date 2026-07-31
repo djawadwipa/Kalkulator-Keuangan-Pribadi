@@ -16,18 +16,21 @@ Aplikasi Android native murni untuk pencatatan, perhitungan, dan analisis keuang
 
 ## Status implementasi
 
-Versi `0.1.0` menyediakan fondasi yang dapat dibuild:
+Versi `0.2.0` menyediakan fondasi data dan transaksi yang dapat dibuild:
 
 - Dashboard arus kas bulan berjalan.
-- Pencatatan pemasukan dan pengeluaran lokal.
-- Filter transaksi.
+- Pencatatan pemasukan dan pengeluaran lokal dengan tambah, edit, dan hapus.
+- Master rekening dan kategori dengan relasi foreign key.
+- Pencarian transaksi serta filter pemasukan/pengeluaran.
+- Pemilihan tanggal, rekening, dan kategori pada setiap transaksi.
 - Saving rate dan expense ratio.
 - Financial Health Score yang aman terhadap nilai kosong dan pembagian nol.
 - Tema navy–emerald dan adaptive launcher icon **Cashflow Orbit**.
 - Kebijakan privasi di dalam aplikasi dan repository.
-- Unit test, Android lint, dependency review, debug CI, serta signed release pipeline.
+- Room Database 2.8.4 dengan migrasi aman dari schema SQLite v1 ke Room v2.
+- Unit test, kompilasi tes migrasi Android, Android lint, dependency review, debug/release CI, serta signed release pipeline.
 
-Modul workbook Ultimate berikut telah dipetakan untuk iterasi selanjutnya: budget, tabungan dan dana darurat, cicilan dan utang, snowball, avalanche, target keuangan, cash flow, investasi, simulasi investasi, aset-liabilitas, net worth, financial freedom, dan laporan bulanan.
+Modul workbook Ultimate berikut telah dipetakan untuk iterasi selanjutnya: profil keuangan, budget, tabungan dan dana darurat, cicilan dan utang, snowball, avalanche, target keuangan, cash flow, investasi, simulasi investasi, aset-liabilitas, net worth, financial freedom, dan laporan bulanan.
 
 Lihat [status proyek](PROJECT_STATUS.md) untuk batas implementasi saat ini.
 
@@ -36,7 +39,7 @@ Lihat [status proyek](PROJECT_STATUS.md) untuk batas implementasi saat ini.
 Gunakan JDK 17 dan Android SDK 36.
 
 ```bash
-./gradlew testDebugUnitTest lintDebug assembleDebug
+./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest assembleRelease
 ```
 
 Pada pemanggilan pertama, launcher `gradlew` memasang Gradle Wrapper 9.3.1 dari distribusi resmi melalui HTTPS. File JAR diverifikasi terhadap SHA-256 resmi sebelum dijalankan. Distribusi Gradle juga diverifikasi melalui `distributionSha256Sum` di `gradle-wrapper.properties`.
