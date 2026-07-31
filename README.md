@@ -9,7 +9,7 @@ Aplikasi Android native murni untuk pencatatan, perhitungan, dan analisis keuang
 - **UI:** Kotlin + Jetpack Compose + Material 3
 - **Penyimpanan:** SQLite privat perangkat
 - **Minimum Android:** API 23
-- **Compile/target SDK:** API 37
+- **Compile/target SDK:** API 36
 - **Internet permission:** tidak ada
 - **WebView/PWA/browser wrapper:** tidak ada
 - **Logo:** Cashflow Orbit, navy `#0F172A` dan emerald `#10B981`
@@ -33,7 +33,7 @@ Lihat [status proyek](PROJECT_STATUS.md) untuk batas implementasi saat ini.
 
 ## Build lokal
 
-Gunakan JDK 17 dan Android SDK 37.
+Gunakan JDK 17 dan Android SDK 36.
 
 ```bash
 ./gradlew testDebugUnitTest lintDebug assembleDebug
