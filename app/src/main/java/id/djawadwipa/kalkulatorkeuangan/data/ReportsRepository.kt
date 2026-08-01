@@ -2,6 +2,7 @@ package id.djawadwipa.kalkulatorkeuangan.data
 
 import id.djawadwipa.kalkulatorkeuangan.data.local.BudgetRecord
 import id.djawadwipa.kalkulatorkeuangan.data.local.FinanceDao
+import id.djawadwipa.kalkulatorkeuangan.data.local.FinanceDatabase
 import id.djawadwipa.kalkulatorkeuangan.data.local.MonthlyReportSnapshotEntity
 import id.djawadwipa.kalkulatorkeuangan.data.local.MonthlyReviewEntity
 import id.djawadwipa.kalkulatorkeuangan.data.local.TransactionRecord
@@ -15,6 +16,7 @@ import id.djawadwipa.kalkulatorkeuangan.model.FinancialHealthInput
 import id.djawadwipa.kalkulatorkeuangan.model.MonthlyFinancialReport
 import id.djawadwipa.kalkulatorkeuangan.model.MonthlyReportSnapshot
 import id.djawadwipa.kalkulatorkeuangan.model.MonthlyReview
+import id.djawadwipa.kalkulatorkeuangan.model.NetWorthSnapshot
 import id.djawadwipa.kalkulatorkeuangan.model.TransactionType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,8 +28,11 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 
 class ReportsRepository(
-    private val dao: FinanceDao,
+    database: FinanceDatabase,
 ) {
+    private val dao: FinanceDao = database.financeDao()
+    private val netWorthRepository = NetWorthRepository(database)
+
     private val _selectedMonthStart = MutableStateFlow(
         CashFlowCalculator.monthStart(System.currentTimeMillis()),
     )
@@ -44,23 +49,60 @@ class ReportsRepository(
         rows.map { it.toModel(now) }
     }
 
+    private val advancedHealthData: Flow<AdvancedHealthData> = combine(
+        dao.observeDebts(),
+        netWorthRepository.overview,
+        netWorthRepository.snapshots,
+    ) { debts, overview, snapshots ->
+        AdvancedHealthData(
+            minimumDebtPayments = debts.sumOf { debt ->
+                minOf(debt.minimumPayment.coerceAtLeast(0L), debt.currentBalance.coerceAtLeast(0L))
+            },
+            currentNetWorth = overview.netWorth,
+            totalAssets = overview.totalAssets,
+            investmentValue = overview.investmentValue,
+            snapshots = snapshots,
+        )
+    }
+
     val report: Flow<MonthlyFinancialReport> = _selectedMonthStart.flatMapLatest { month ->
         val nextMonth = CashFlowCalculator.shiftMonth(month, 1)
         combine(
             transactions,
             dao.observeBudgets(month, nextMonth),
             savingsGoals,
-        ) { allTransactions, budgetRows, goals ->
+            advancedHealthData,
+        ) { allTransactions, budgetRows, goals, advanced ->
             val budget = BudgetCalculator.summary(month, budgetRows.map(BudgetRecord::toReportModel))
             val selectedRows = allTransactions.filter { it.occurredAt >= month && it.occurredAt < nextMonth }
             val income = selectedRows.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
             val expense = selectedRows.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
             val emergencyFundMonths = SavingsCalculator.overview(goals, expense).emergencyFundMonths
+            val selectedSnapshot = advanced.snapshots.firstOrNull { it.monthStart == month }
+            val previousSnapshot = advanced.snapshots.firstOrNull { it.monthStart < month }
+            val selectedNetWorth = selectedSnapshot?.netWorth ?: advanced.currentNetWorth
+            val selectedTotalAssets = selectedSnapshot?.totalAssets ?: advanced.totalAssets
+            val selectedInvestmentValue = selectedSnapshot?.investmentValue ?: advanced.investmentValue
+            val debtServiceRatio = FinancialCalculator.debtServiceRatio(
+                income = income,
+                minimumPayments = advanced.minimumDebtPayments,
+            )
+            val investmentAllocation = FinancialCalculator.investmentAllocation(
+                investmentValue = selectedInvestmentValue,
+                totalAssets = selectedTotalAssets,
+            )
+            val netWorthGrowth = FinancialCalculator.netWorthGrowth(
+                currentNetWorth = selectedNetWorth,
+                previousNetWorth = previousSnapshot?.netWorth,
+            )
             val healthScore = FinancialCalculator.healthScore(
                 FinancialHealthInput(
                     income = income,
                     expense = expense,
+                    debtRatio = debtServiceRatio,
                     emergencyFundMonths = emergencyFundMonths,
+                    investmentRate = investmentAllocation,
+                    netWorthGrowth = netWorthGrowth,
                     budgetAdherence = budget.adherencePercent,
                 ),
             )
@@ -130,6 +172,14 @@ class ReportsRepository(
         dao.deleteMonthlyReportSnapshotById(id)
     }
 }
+
+private data class AdvancedHealthData(
+    val minimumDebtPayments: Long,
+    val currentNetWorth: Long,
+    val totalAssets: Long,
+    val investmentValue: Long,
+    val snapshots: List<NetWorthSnapshot>,
+)
 
 private fun TransactionRecord.toReportModel(): FinanceTransaction = FinanceTransaction(
     id = id,
