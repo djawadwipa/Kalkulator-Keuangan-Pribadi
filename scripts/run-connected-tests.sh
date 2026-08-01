@@ -4,6 +4,7 @@ set -euo pipefail
 SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
 AVDMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/avdmanager"
 EMULATOR="${ANDROID_HOME}/emulator/emulator"
+ADB="${ANDROID_HOME}/platform-tools/adb"
 
 if [[ ! -x "$SDKMANAGER" ]]; then
   SDKMANAGER="$(command -v sdkmanager)"
@@ -24,6 +25,9 @@ yes | "$SDKMANAGER" \
   "build-tools;36.0.0" \
   "$SYSTEM_IMAGE"
 set -o pipefail
+
+test -x "$ADB"
+test -x "$EMULATOR"
 
 if [[ -e /dev/kvm ]]; then
   sudo chmod 666 /dev/kvm
@@ -51,15 +55,15 @@ echo "no" | "$AVDMANAGER" create avd \
 EMULATOR_PID=$!
 
 cleanup() {
-  adb emu kill >/dev/null 2>&1 || true
+  "$ADB" emu kill >/dev/null 2>&1 || true
   kill "$EMULATOR_PID" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
-adb wait-for-device
+"$ADB" wait-for-device
 BOOTED=false
 for _ in $(seq 1 180); do
-  if [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)" == "1" ]]; then
+  if [[ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)" == "1" ]]; then
     BOOTED=true
     break
   fi
@@ -72,10 +76,10 @@ if [[ "$BOOTED" != "true" ]]; then
   exit 1
 fi
 
-adb shell settings put global window_animation_scale 0
-adb shell settings put global transition_animation_scale 0
-adb shell settings put global animator_duration_scale 0
-adb shell input keyevent 82
-adb shell cmd package list packages >/dev/null
+"$ADB" shell settings put global window_animation_scale 0
+"$ADB" shell settings put global transition_animation_scale 0
+"$ADB" shell settings put global animator_duration_scale 0
+"$ADB" shell input keyevent 82
+"$ADB" shell cmd package list packages >/dev/null
 
 ./gradlew --no-daemon --stacktrace connectedDebugAndroidTest
