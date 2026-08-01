@@ -69,7 +69,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon --stacktrace clean testReleaseUnitTest lintRelease assembleRelease bundleRelease
+        run: ./gradlew --no-daemon --stacktrace :app:clean :app:testDebugUnitTest :app:lintRelease :app:assembleRelease :app:bundleRelease
 
       - name: Generate release dependency report
         run: ./gradlew --no-daemon :app:dependencies --configuration releaseRuntimeClasspath > dependency-report-release.txt
@@ -108,5 +108,5 @@ jobs:
             app/build/outputs/bundle/release/app-release.aab
             app/build/outputs/SHA256SUMS.txt
             app/build/reports/lint-results-release.*
-            app/build/reports/tests/testReleaseUnitTest/
+            app/build/reports/tests/testDebugUnitTest/
             dependency-report-release.txt
