@@ -18,6 +18,19 @@ enum class BudgetStatus(val label: String) {
     EXCEEDED("Melebihi budget"),
 }
 
+enum class SavingsGoalType(val label: String) {
+    SAVINGS("Tabungan"),
+    EMERGENCY_FUND("Dana darurat"),
+    FINANCIAL_GOAL("Target keuangan"),
+}
+
+enum class SavingsGoalStatus(val label: String) {
+    NOT_STARTED("Belum dimulai"),
+    IN_PROGRESS("Berjalan"),
+    COMPLETED("Tercapai"),
+    OVERDUE("Melewati tenggat"),
+}
+
 data class FinanceAccount(
     val id: Long,
     val name: String,
@@ -107,6 +120,56 @@ data class MonthlyAnalysis(
     val budget: BudgetSummary = BudgetSummary(),
 )
 
+data class SavingsGoalDraft(
+    val name: String,
+    val type: SavingsGoalType,
+    val targetAmount: Long,
+    val targetDate: Long?,
+    val monthlyContributionTarget: Long,
+)
+
+data class SavingsGoal(
+    val id: Long,
+    val name: String,
+    val type: SavingsGoalType,
+    val targetAmount: Long,
+    val currentAmount: Long,
+    val remainingAmount: Long,
+    val progressPercent: Double,
+    val targetDate: Long?,
+    val monthlyContributionTarget: Long,
+    val estimatedCompletionDate: Long?,
+    val status: SavingsGoalStatus,
+    val createdAt: Long,
+    val updatedAt: Long,
+)
+
+data class SavingsContributionDraft(
+    val goalId: Long,
+    val amount: Long,
+    val contributedAt: Long,
+    val note: String,
+)
+
+data class SavingsContribution(
+    val id: Long,
+    val goalId: Long,
+    val goalName: String,
+    val amount: Long,
+    val contributedAt: Long,
+    val note: String,
+)
+
+data class SavingsOverview(
+    val totalSaved: Long = 0,
+    val totalTarget: Long = 0,
+    val progressPercent: Double = 0.0,
+    val emergencyFundBalance: Long = 0,
+    val emergencyFundMonths: Double = 0.0,
+    val activeGoalCount: Int = 0,
+    val completedGoalCount: Int = 0,
+)
+
 data class DashboardSummary(
     val income: Long = 0,
     val expense: Long = 0,
@@ -117,6 +180,8 @@ data class DashboardSummary(
     val transactionCount: Int = 0,
     val incomeTargetProgress: Double = 0.0,
     val savingsTargetGap: Double = 0.0,
+    val totalSavings: Long = 0,
+    val emergencyFundMonths: Double = 0.0,
 )
 
 data class FinancialHealthInput(
