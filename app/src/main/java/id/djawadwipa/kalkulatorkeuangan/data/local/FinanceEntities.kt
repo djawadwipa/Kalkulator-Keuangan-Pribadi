@@ -167,6 +167,29 @@ data class SavingsContributionEntity(
     val note: String = "",
 )
 
+@Entity(
+    tableName = "monthly_report_snapshots",
+    indices = [Index(value = ["month_start"], unique = true)],
+)
+data class MonthlyReportSnapshotEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    @ColumnInfo(name = "month_start")
+    val monthStart: Long,
+    val income: Long,
+    val expense: Long,
+    @ColumnInfo(name = "net_cash_flow")
+    val netCashFlow: Long,
+    @ColumnInfo(name = "savings_rate")
+    val savingsRate: Double,
+    @ColumnInfo(name = "budget_adherence")
+    val budgetAdherence: Double,
+    @ColumnInfo(name = "health_score")
+    val healthScore: Int,
+    @ColumnInfo(name = "generated_at")
+    val generatedAt: Long,
+)
+
 data class TransactionRecord(
     val id: Long,
     val type: String,
