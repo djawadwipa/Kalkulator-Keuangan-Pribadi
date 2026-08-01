@@ -27,7 +27,7 @@ class FinanceDatabaseMigrationTest {
     }
 
     @Test
-    fun migration1To7PreservesTransactionsAndCreatesAllFeatureTables() {
+    fun migration1To8PreservesTransactionsAndCreatesAllFeatureTables() {
         createVersionOneDatabase()
 
         val roomDatabase = Room.databaseBuilder(
@@ -42,6 +42,7 @@ class FinanceDatabaseMigrationTest {
                 FinanceDatabase.MIGRATION_4_5,
                 FinanceDatabase.MIGRATION_5_6,
                 FinanceDatabase.MIGRATION_6_7,
+                FinanceDatabase.MIGRATION_7_8,
             )
             .allowMainThreadQueries()
             .build()
@@ -73,6 +74,8 @@ class FinanceDatabaseMigrationTest {
             "debt_payments",
             "investment_assets",
             "investment_transactions",
+            "net_worth_items",
+            "net_worth_snapshots",
         ).forEach { table ->
             roomDatabase.openHelper.readableDatabase.query("SELECT COUNT(*) FROM $table").use { cursor ->
                 assertTrue(cursor.moveToFirst())
@@ -83,7 +86,7 @@ class FinanceDatabaseMigrationTest {
     }
 
     @Test
-    fun migration3To7CreatesSavingsReportDebtAndInvestmentRelations() {
+    fun migration3To8CreatesSavingsReportDebtInvestmentAndNetWorthTables() {
         createVersionThreeDatabase()
 
         val roomDatabase = Room.databaseBuilder(
@@ -96,6 +99,7 @@ class FinanceDatabaseMigrationTest {
                 FinanceDatabase.MIGRATION_4_5,
                 FinanceDatabase.MIGRATION_5_6,
                 FinanceDatabase.MIGRATION_6_7,
+                FinanceDatabase.MIGRATION_7_8,
             )
             .allowMainThreadQueries()
             .build()
@@ -152,6 +156,23 @@ class FinanceDatabaseMigrationTest {
             ) VALUES (1, 'BUY', 10.0, 100000, 1000000, 0, 1706745600000, 'Pembelian awal')
             """.trimIndent(),
         )
+        db.execSQL(
+            """
+            INSERT INTO net_worth_items(
+                id, name, side, type, value, note, is_archived, updated_at
+            ) VALUES (1, 'Rumah', 'ASSET', 'PROPERTY', 500000000, 'Estimasi konservatif', 0, 1)
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO net_worth_snapshots(
+                month_start, manual_assets, savings_value, investment_value,
+                manual_liabilities, debt_value, total_assets, total_liabilities,
+                net_worth, generated_at
+            ) VALUES (1704067200000, 500000000, 2000000, 1200000,
+                0, 4500000, 503200000, 4500000, 498700000, 1)
+            """.trimIndent(),
+        )
 
         db.query("SELECT amount FROM savings_contributions WHERE goal_id = 1").use { cursor ->
             assertTrue(cursor.moveToFirst())
@@ -172,6 +193,14 @@ class FinanceDatabaseMigrationTest {
         db.query("SELECT amount FROM investment_transactions WHERE asset_id = 1").use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals(1_000_000L, cursor.getLong(0))
+        }
+        db.query("SELECT value FROM net_worth_items WHERE id = 1").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(500_000_000L, cursor.getLong(0))
+        }
+        db.query("SELECT net_worth FROM net_worth_snapshots").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(498_700_000L, cursor.getLong(0))
         }
 
         db.execSQL("DELETE FROM savings_goals WHERE id = 1")
