@@ -17,6 +17,34 @@ class FinancialCalculatorTest {
     }
 
     @Test
+    fun debtServiceRatio_usesMinimumPaymentsAgainstIncome() {
+        assertEquals(
+            15.0,
+            FinancialCalculator.debtServiceRatio(10_000_000, 1_500_000),
+            0.001,
+        )
+    }
+
+    @Test
+    fun investmentAllocation_usesMarketValueAgainstTotalAssets() {
+        assertEquals(
+            25.0,
+            FinancialCalculator.investmentAllocation(50_000_000, 200_000_000),
+            0.001,
+        )
+    }
+
+    @Test
+    fun netWorthGrowth_comparesAgainstPreviousSnapshot() {
+        assertEquals(
+            20.0,
+            FinancialCalculator.netWorthGrowth(120_000_000, 100_000_000),
+            0.001,
+        )
+        assertEquals(0.0, FinancialCalculator.netWorthGrowth(120_000_000, null), 0.0)
+    }
+
+    @Test
     fun healthScore_staysWithinRange() {
         val score = FinancialCalculator.healthScore(
             FinancialHealthInput(
