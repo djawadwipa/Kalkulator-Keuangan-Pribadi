@@ -16,7 +16,7 @@ Aplikasi Android native murni untuk pencatatan, perencanaan, perhitungan, dan an
 
 ## Status implementasi
 
-Versi `0.5.0` menyediakan fondasi transaksi, perencanaan, tabungan, arus kas, dan laporan bulanan yang dapat dibuild:
+Versi `0.6.0` menyediakan fondasi transaksi, perencanaan, tabungan, laporan, serta pengelolaan utang yang dapat dibuild:
 
 - Dashboard arus kas bulan berjalan dan progres target pemasukan.
 - Profil keuangan lokal: nama/panggilan, target pemasukan, dan target tabungan.
@@ -26,18 +26,20 @@ Versi `0.5.0` menyediakan fondasi transaksi, perencanaan, tabungan, arus kas, da
 - Budget bulanan per kategori pengeluaran beserta realisasi dan status.
 - Target tabungan, dana darurat, dan target keuangan dengan CRUD lengkap.
 - Riwayat setoran per target, progres, sisa nominal, tenggat, status, dan estimasi tanggal tercapai.
-- Laporan arus kas bulanan dengan pemasukan, pengeluaran, saldo bersih, saving rate, dan jumlah transaksi.
-- Perbandingan pemasukan, pengeluaran, dan arus kas dengan bulan sebelumnya.
-- Tren arus kas 12 bulan, rincian kategori pengeluaran, dan aktivitas per rekening.
-- Evaluasi pribadi per bulan dengan nilai, sorotan, dan rencana perbaikan.
-- Snapshot laporan bulanan yang dapat disimpan, diperbarui, dan dihapus secara lokal.
+- Laporan arus kas bulanan, perbandingan bulan sebelumnya, dan tren 12 bulan.
+- Rincian kategori pengeluaran dan aktivitas per rekening.
+- Evaluasi pribadi dan snapshot laporan bulanan lokal.
+- CRUD cicilan dan utang dengan jenis, kreditur, bunga, minimum pembayaran, jatuh tempo, serta target pelunasan.
+- Riwayat pembayaran utang dengan saldo dan progres yang dihitung otomatis.
+- Simulasi **Debt Snowball** dan **Debt Avalanche**.
+- Anggaran pembayaran bulanan, estimasi bebas utang, urutan pelunasan, dan estimasi total bunga.
 - Cakupan dana darurat, budget adherence, expense ratio, dan Financial Health Score.
 - Tema navy–emerald dan adaptive launcher icon **Cashflow Orbit**.
 - Kebijakan privasi di dalam aplikasi dan repository.
-- Room Database 2.8.4 dengan migrasi non-destruktif v1 → v2 → v3 → v4 → v5.
+- Room Database 2.8.4 dengan migrasi non-destruktif v1 → v2 → v3 → v4 → v5 → v6.
 - Unit test, kompilasi tes migrasi Android, lint, dependency review, debug/release CI, dan signed release pipeline.
 
-Modul berikut telah dipetakan untuk iterasi selanjutnya: cicilan dan utang, debt snowball, debt avalanche, investasi, simulasi investasi, aset-liabilitas, net worth, serta financial freedom.
+Modul berikut telah dipetakan untuk iterasi selanjutnya: investasi, simulasi investasi, aset-liabilitas, net worth, Financial Health Score lanjutan, financial freedom, serta ekspor/impor data.
 
 Lihat [status proyek](PROJECT_STATUS.md) untuk batas implementasi saat ini.
 
