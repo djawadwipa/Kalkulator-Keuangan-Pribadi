@@ -16,7 +16,7 @@ Aplikasi Android native murni untuk pencatatan, perencanaan, perhitungan, dan an
 
 ## Status implementasi
 
-Versi `0.7.0` menyediakan fondasi transaksi, perencanaan, tabungan, laporan, utang, serta investasi yang dapat dibuild:
+Versi `0.8.0` menyediakan fondasi transaksi, perencanaan, tabungan, laporan, utang, investasi, serta Net Worth yang dapat dibuild:
 
 - Dashboard arus kas bulan berjalan dan progres target pemasukan.
 - Profil keuangan lokal: nama/panggilan, target pemasukan, dan target tabungan.
@@ -35,13 +35,16 @@ Versi `0.7.0` menyediakan fondasi transaksi, perencanaan, tabungan, laporan, uta
 - Perhitungan unit, harga rata-rata, cost basis, nilai pasar, keuntungan/rugi, return, serta alokasi portofolio.
 - Harga pasar dan target alokasi diperbarui manual tanpa akses internet.
 - Simulasi investasi dengan modal awal, setoran bulanan, compounding, return tahunan, durasi, dan inflasi.
-- Cakupan dana darurat, budget adherence, expense ratio, dan Financial Health Score.
+- CRUD aset dan liabilitas manual yang belum tercatat pada modul lain.
+- Net Worth menggabungkan aset manual, tabungan, nilai pasar investasi, liabilitas manual, dan sisa utang.
+- Snapshot Net Worth bulanan, komposisi aset/liabilitas, rasio liabilitas terhadap aset, dan perbandingan historis.
+- Financial Health Score lanjutan menggunakan arus kas, expense ratio, saving rate, rasio pembayaran minimum utang, dana darurat, porsi investasi, pertumbuhan Net Worth, dan kepatuhan budget.
 - Tema navy–emerald dan adaptive launcher icon **Cashflow Orbit**.
 - Kebijakan privasi di dalam aplikasi dan repository.
-- Room Database 2.8.4 dengan migrasi non-destruktif v1 → v2 → v3 → v4 → v5 → v6 → v7.
+- Room Database 2.8.4 dengan migrasi non-destruktif v1 → v2 → v3 → v4 → v5 → v6 → v7 → v8.
 - Unit test, kompilasi tes migrasi Android, lint, dependency review, debug/release CI, dan signed release pipeline.
 
-Modul berikut telah dipetakan untuk iterasi selanjutnya: aset-liabilitas, net worth, Financial Health Score lanjutan, financial freedom, serta ekspor/impor dan backup data.
+Modul berikut telah dipetakan untuk iterasi selanjutnya: proyeksi financial freedom, ekspor/impor, backup lokal terenkripsi, pengujian perangkat, serta persiapan distribusi.
 
 Lihat [status proyek](PROJECT_STATUS.md) untuk batas implementasi saat ini.
 
@@ -109,9 +112,9 @@ Pipeline memverifikasi package ID, status non-debuggable, permission, signature 
 - CI membuat dependency report dan menjalankan lint, unit test, debug build, instrumentation-test APK, serta release/R8 build.
 - Repository tidak menyimpan keystore, password, token, atau API key.
 
-## Batas simulasi
+## Batas perhitungan
 
-Simulasi pelunasan utang dan investasi adalah alat perencanaan berdasarkan asumsi yang dimasukkan pengguna. Hasilnya bukan jaminan return, rekomendasi investasi, atau pengganti tagihan dan informasi resmi penyedia produk keuangan.
+Simulasi pelunasan utang, investasi, nilai aset, dan Net Worth adalah alat perencanaan berdasarkan asumsi yang dimasukkan pengguna. Hasilnya bukan jaminan return, penilaian resmi aset, rekomendasi investasi, atau pengganti tagihan dan informasi resmi penyedia produk keuangan.
 
 ## Distribusi
 

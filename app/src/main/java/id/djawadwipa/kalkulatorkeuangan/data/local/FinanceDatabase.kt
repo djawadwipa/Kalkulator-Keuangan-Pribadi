@@ -22,13 +22,16 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         DebtPaymentEntity::class,
         InvestmentAssetEntity::class,
         InvestmentTransactionEntity::class,
+        NetWorthItemEntity::class,
+        NetWorthSnapshotEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class FinanceDatabase : RoomDatabase() {
     abstract fun financeDao(): FinanceDao
     abstract fun investmentDao(): InvestmentDao
+    abstract fun netWorthDao(): NetWorthDao
 
     companion object {
         private const val DATABASE_NAME = "kalkulator_keuangan.db"
@@ -252,6 +255,42 @@ abstract class FinanceDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `net_worth_items` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `side` TEXT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `value` INTEGER NOT NULL,
+                        `note` TEXT NOT NULL,
+                        `is_archived` INTEGER NOT NULL,
+                        `updated_at` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_net_worth_items_side` ON `net_worth_items` (`side`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_net_worth_items_type` ON `net_worth_items` (`type`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_net_worth_items_is_archived` ON `net_worth_items` (`is_archived`)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `net_worth_snapshots` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `month_start` INTEGER NOT NULL,
+                        `manual_assets` INTEGER NOT NULL,
+                        `savings_value` INTEGER NOT NULL,
+                        `investment_value` INTEGER NOT NULL,
+                        `manual_liabilities` INTEGER NOT NULL,
+                        `debt_value` INTEGER NOT NULL,
+                        `total_assets` INTEGER NOT NULL,
+                        `total_liabilities` INTEGER NOT NULL,
+                        `net_worth` INTEGER NOT NULL,
+                        `generated_at` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_net_worth_snapshots_month_start` ON `net_worth_snapshots` (`month_start`)")
+            }
+        }
+
         @Volatile
         private var instance: FinanceDatabase? = null
 
@@ -268,6 +307,7 @@ abstract class FinanceDatabase : RoomDatabase() {
                     MIGRATION_4_5,
                     MIGRATION_5_6,
                     MIGRATION_6_7,
+                    MIGRATION_7_8,
                 )
                 .build()
                 .also { instance = it }
