@@ -47,6 +47,7 @@ internal fun MoreScreen(
     var showCategoryDialog by rememberSaveable { mutableStateOf(false) }
     var showDebtPlanner by rememberSaveable { mutableStateOf(false) }
     var showInvestmentPlanner by rememberSaveable { mutableStateOf(false) }
+    var showNetWorthPlanner by rememberSaveable { mutableStateOf(false) }
 
     if (showDebtPlanner) {
         DebtRouteScreen(
@@ -58,6 +59,13 @@ internal fun MoreScreen(
     if (showInvestmentPlanner) {
         InvestmentRouteScreen(
             onBack = { showInvestmentPlanner = false },
+            modifier = modifier,
+        )
+        return
+    }
+    if (showNetWorthPlanner) {
+        NetWorthRouteScreen(
+            onBack = { showNetWorthPlanner = false },
             modifier = modifier,
         )
         return
@@ -124,6 +132,19 @@ internal fun MoreScreen(
             }
         }
         item {
+            SectionTitle("Aset, liabilitas, dan Net Worth")
+            MasterDataRow(
+                title = "Net Worth tracker",
+                subtitle = "Gabungkan aset manual dengan tabungan, investasi, dan sisa utang secara otomatis.",
+            )
+            OutlinedButton(
+                onClick = { showNetWorthPlanner = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Buka aset, liabilitas, dan Net Worth")
+            }
+        }
+        item {
             SectionTitle("Rekening")
             OutlinedButton(
                 onClick = { showAccountDialog = true },
@@ -172,7 +193,7 @@ internal fun MoreScreen(
                 Text("Hapus seluruh transaksi lokal")
             }
         }
-        item { Text("Versi 0.7.0 • id.djawadwipa.kalkulatorkeuangan") }
+        item { Text("Versi 0.8.0 • id.djawadwipa.kalkulatorkeuangan") }
     }
 
     if (showProfileDialog) {
@@ -208,7 +229,7 @@ internal fun MoreScreen(
             onDismissRequest = { confirmClear = false },
             title = { Text("Hapus semua transaksi?") },
             text = {
-                Text("Profil, rekening, kategori, budget, target, setoran, utang, investasi, dan riwayat terkait tetap tersimpan. Tindakan ini tidak dapat dibatalkan.")
+                Text("Profil, rekening, kategori, budget, target, setoran, utang, investasi, item Net Worth, dan riwayat terkait tetap tersimpan. Tindakan ini tidak dapat dibatalkan.")
             },
             confirmButton = {
                 Button(
