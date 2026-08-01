@@ -26,8 +26,8 @@ object EncryptedBackupCodec {
         require(password.size >= MIN_PASSWORD_LENGTH) {
             "Password backup minimal $MIN_PASSWORD_LENGTH karakter"
         }
-        val salt = ByteArray(SALT_SIZE).also(random::nextBytes)
-        val iv = ByteArray(IV_SIZE).also(random::nextBytes)
+        val salt = ByteArray(SALT_SIZE).also { random.nextBytes(it) }
+        val iv = ByteArray(IV_SIZE).also { random.nextBytes(it) }
         val header = ByteBuffer.allocate(magicBytes.size + 1 + Int.SIZE_BYTES + SALT_SIZE + IV_SIZE)
             .order(ByteOrder.BIG_ENDIAN)
             .put(magicBytes)
@@ -56,13 +56,13 @@ object EncryptedBackupCodec {
         require(payload.size > headerSize + 16) { "File backup terlalu pendek atau rusak" }
         val header = payload.copyOfRange(0, headerSize)
         val buffer = ByteBuffer.wrap(header).order(ByteOrder.BIG_ENDIAN)
-        val actualMagic = ByteArray(magicBytes.size).also(buffer::get)
+        val actualMagic = ByteArray(magicBytes.size).also { buffer.get(it) }
         require(actualMagic.contentEquals(magicBytes)) { "Format backup tidak dikenali" }
         require(buffer.get() == VERSION) { "Versi backup belum didukung" }
         val iterations = buffer.int
         require(iterations in 50_000..1_000_000) { "Parameter backup tidak valid" }
-        val salt = ByteArray(SALT_SIZE).also(buffer::get)
-        val iv = ByteArray(IV_SIZE).also(buffer::get)
+        val salt = ByteArray(SALT_SIZE).also { buffer.get(it) }
+        val iv = ByteArray(IV_SIZE).also { buffer.get(it) }
         val key = deriveKey(password, salt, iterations)
         return try {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
