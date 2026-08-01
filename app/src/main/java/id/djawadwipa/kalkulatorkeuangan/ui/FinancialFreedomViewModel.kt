@@ -3,6 +3,7 @@ package id.djawadwipa.kalkulatorkeuangan.ui
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import id.djawadwipa.kalkulatorkeuangan.data.FinancialFreedomRepository
 import id.djawadwipa.kalkulatorkeuangan.model.FinancialFreedomPlan
 import id.djawadwipa.kalkulatorkeuangan.model.FinancialFreedomProjection
@@ -28,7 +29,7 @@ class FinancialFreedomViewModel(
             isLoading = false,
         )
     }.stateIn(
-        scope = androidx.lifecycle.viewModelScope,
+        scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = FinancialFreedomUiState(),
     )
