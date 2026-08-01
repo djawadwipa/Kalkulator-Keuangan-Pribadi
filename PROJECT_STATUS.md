@@ -8,7 +8,7 @@
 - Logo: **Cashflow Orbit**, navy `#0F172A` dan emerald `#10B981`
 - Platform: Android native Kotlin + Jetpack Compose
 
-## Sudah tersedia pada v0.7.0
+## Sudah tersedia pada v0.8.0
 
 - Dashboard arus kas dan progres target pemasukan bulan berjalan.
 - Profil keuangan lokal dengan target pemasukan dan target tabungan.
@@ -28,9 +28,13 @@
 - Unit, harga rata-rata, cost basis, nilai pasar, keuntungan/rugi, return, serta alokasi aktual dan target.
 - Ringkasan pendapatan dan biaya investasi.
 - Simulasi investasi dengan compounding bulanan, setoran rutin, return, durasi, dan inflasi.
-- Cakupan dana darurat, kepatuhan budget, dan Financial Health Score pada laporan.
+- CRUD aset dan liabilitas manual di luar modul tabungan, investasi, dan utang.
+- Net Worth otomatis dari aset manual, tabungan, investasi, liabilitas manual, dan sisa utang.
+- Total aset, total liabilitas, kekayaan bersih, komposisi, serta rasio liabilitas terhadap aset.
+- Snapshot Net Worth bulanan dan perbandingan dengan snapshot sebelumnya.
+- Financial Health Score lanjutan memakai rasio pembayaran minimum utang, porsi investasi, dan pertumbuhan Net Worth selain metrik arus kas, dana darurat, dan budget.
 - Room Database/SQLite privat dengan Flow.
-- Migrasi non-destruktif v1 → v2 → v3 → v4 → v5 → v6 → v7 dan schema Room terkunci.
+- Migrasi non-destruktif v1 → v2 → v3 → v4 → v5 → v6 → v7 → v8 dan schema Room terkunci.
 - Relasi pembayaran utang dan transaksi investasi menggunakan foreign key cascade.
 - Tema Material 3 navy–emerald dan adaptive launcher icon.
 - Privacy policy di dalam aplikasi dan repository.
@@ -41,17 +45,17 @@
 
 ## Modul berikutnya
 
-1. Aset dan Liabilitas
-2. Net Worth Tracker
-3. Financial Health Score lanjutan
-4. Proyeksi Financial Freedom
-5. Ekspor dan impor data
-6. Backup lokal terenkripsi
-7. Pengujian instrumentasi pada emulator/perangkat
-8. Signed production release
-9. Privacy policy URL publik
-10. Google Play Internal/Closed Testing
+1. Proyeksi Financial Freedom
+2. Ekspor dan impor data
+3. Backup lokal terenkripsi
+4. Pengujian instrumentasi pada emulator/perangkat
+5. Signed production release
+6. Privacy policy URL publik
+7. Google Play Internal/Closed Testing
+8. Screenshot dan materi Play Store
+9. Data Safety form
+10. Keputusan lisensi source
 
 ## Batas verifikasi saat ini
 
-Android CI telah membangun APK debug dan release, menjalankan unit test dan lint, membuat dependency report, serta mengompilasi APK tes migrasi Room. Tes instrumentasi belum dijalankan pada emulator/perangkat oleh CI. Harga investasi dimasukkan manual dan simulasi return merupakan alat perencanaan, bukan jaminan hasil atau rekomendasi investasi. Signed APK dan AAB produksi tetap membutuhkan empat GitHub Actions Secrets yang dijelaskan di README.
+Android CI telah membangun APK debug dan release, menjalankan unit test dan lint, membuat dependency report, serta mengompilasi APK tes migrasi Room. Tes instrumentasi belum dijalankan pada emulator/perangkat oleh CI. Harga investasi dan nilai aset dimasukkan manual; simulasi serta Net Worth merupakan alat perencanaan dan bukan penilaian atau rekomendasi resmi. Signed APK dan AAB produksi tetap membutuhkan empat GitHub Actions Secrets yang dijelaskan di README.
