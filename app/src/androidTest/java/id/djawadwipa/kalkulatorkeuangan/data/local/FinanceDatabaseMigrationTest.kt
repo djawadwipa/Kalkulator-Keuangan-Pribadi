@@ -27,7 +27,7 @@ class FinanceDatabaseMigrationTest {
     }
 
     @Test
-    fun migration1To4PreservesTransactionsAndCreatesPlanningTables() {
+    fun migration1To5PreservesTransactionsAndCreatesPlanningAndReportTables() {
         createVersionOneDatabase()
 
         val roomDatabase = Room.databaseBuilder(
@@ -39,6 +39,7 @@ class FinanceDatabaseMigrationTest {
                 FinanceDatabase.MIGRATION_1_2,
                 FinanceDatabase.MIGRATION_2_3,
                 FinanceDatabase.MIGRATION_3_4,
+                FinanceDatabase.MIGRATION_4_5,
             )
             .allowMainThreadQueries()
             .build()
@@ -64,7 +65,13 @@ class FinanceDatabaseMigrationTest {
             assertEquals(20, cursor.getInt(0))
         }
         roomDatabase.openHelper.readableDatabase.query(
-            "SELECT COUNT(*) FROM savings_goals",
+            "SELECT COUNT(*) FROM monthly_reviews",
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
+        }
+        roomDatabase.openHelper.readableDatabase.query(
+            "SELECT COUNT(*) FROM monthly_report_snapshots",
         ).use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals(0, cursor.getInt(0))
@@ -73,7 +80,7 @@ class FinanceDatabaseMigrationTest {
     }
 
     @Test
-    fun migration3To4CreatesSavingsRelationsAndCascadeDelete() {
+    fun migration3To5CreatesSavingsAndReportRelations() {
         createVersionThreeDatabase()
 
         val roomDatabase = Room.databaseBuilder(
@@ -81,7 +88,7 @@ class FinanceDatabaseMigrationTest {
             FinanceDatabase::class.java,
             TEST_DATABASE,
         )
-            .addMigrations(FinanceDatabase.MIGRATION_3_4)
+            .addMigrations(FinanceDatabase.MIGRATION_3_4, FinanceDatabase.MIGRATION_4_5)
             .allowMainThreadQueries()
             .build()
 
@@ -97,9 +104,28 @@ class FinanceDatabaseMigrationTest {
         db.execSQL(
             "INSERT INTO savings_contributions(goal_id, amount, contributed_at, note) VALUES (1, 2000000, 2, 'Saldo awal')",
         )
+        db.execSQL(
+            "INSERT INTO monthly_reviews(month_start, score, highlight, improvement, updated_at) VALUES (1704067200000, 80, 'Budget terjaga', 'Kurangi hiburan', 1)",
+        )
+        db.execSQL(
+            """
+            INSERT INTO monthly_report_snapshots(
+                month_start, income, expense, net_cash_flow, savings_rate,
+                budget_adherence, health_score, generated_at
+            ) VALUES (1704067200000, 10000000, 6000000, 4000000, 40.0, 90.0, 80, 1)
+            """.trimIndent(),
+        )
         db.query("SELECT amount FROM savings_contributions WHERE goal_id = 1").use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals(2_000_000L, cursor.getLong(0))
+        }
+        db.query("SELECT score FROM monthly_reviews").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(80, cursor.getInt(0))
+        }
+        db.query("SELECT net_cash_flow FROM monthly_report_snapshots").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(4_000_000L, cursor.getLong(0))
         }
         db.execSQL("DELETE FROM savings_goals WHERE id = 1")
         db.query("SELECT COUNT(*) FROM savings_contributions").use { cursor ->
@@ -134,28 +160,9 @@ class FinanceDatabaseMigrationTest {
 
     private fun createVersionThreeDatabase() {
         createDatabase(3) { db ->
-            db.execSQL(
-                """
-                CREATE TABLE accounts (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                    name TEXT NOT NULL,
-                    type TEXT NOT NULL,
-                    opening_balance INTEGER NOT NULL,
-                    is_archived INTEGER NOT NULL
-                )
-                """.trimIndent(),
-            )
+            db.execSQL("CREATE TABLE accounts (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL, opening_balance INTEGER NOT NULL, is_archived INTEGER NOT NULL)")
             db.execSQL("CREATE UNIQUE INDEX index_accounts_name ON accounts(name)")
-            db.execSQL(
-                """
-                CREATE TABLE categories (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                    name TEXT NOT NULL,
-                    type TEXT NOT NULL,
-                    is_default INTEGER NOT NULL
-                )
-                """.trimIndent(),
-            )
+            db.execSQL("CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL, is_default INTEGER NOT NULL)")
             db.execSQL("CREATE UNIQUE INDEX index_categories_name_type ON categories(name, type)")
             db.execSQL(
                 """
@@ -176,18 +183,7 @@ class FinanceDatabaseMigrationTest {
             db.execSQL("CREATE INDEX index_transactions_category_id ON transactions(category_id)")
             db.execSQL("CREATE INDEX index_transactions_occurred_at ON transactions(occurred_at)")
             db.execSQL("CREATE INDEX index_transactions_type ON transactions(type)")
-            db.execSQL(
-                """
-                CREATE TABLE financial_profile (
-                    id INTEGER NOT NULL PRIMARY KEY,
-                    display_name TEXT NOT NULL,
-                    monthly_income_target INTEGER NOT NULL,
-                    savings_target_percent INTEGER NOT NULL,
-                    currency_code TEXT NOT NULL,
-                    updated_at INTEGER NOT NULL
-                )
-                """.trimIndent(),
-            )
+            db.execSQL("CREATE TABLE financial_profile (id INTEGER NOT NULL PRIMARY KEY, display_name TEXT NOT NULL, monthly_income_target INTEGER NOT NULL, savings_target_percent INTEGER NOT NULL, currency_code TEXT NOT NULL, updated_at INTEGER NOT NULL)")
             db.execSQL(
                 """
                 CREATE TABLE budgets (
@@ -211,11 +207,7 @@ class FinanceDatabaseMigrationTest {
             .callback(
                 object : SupportSQLiteOpenHelper.Callback(version) {
                     override fun onCreate(db: SupportSQLiteDatabase) = createSchema(db)
-                    override fun onUpgrade(
-                        db: SupportSQLiteDatabase,
-                        oldVersion: Int,
-                        newVersion: Int,
-                    ) = Unit
+                    override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
                 },
             )
             .build()
