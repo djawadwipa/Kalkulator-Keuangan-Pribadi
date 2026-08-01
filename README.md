@@ -34,9 +34,10 @@ Versi `0.9.0` menyediakan fondasi transaksi, perencanaan, tabungan, laporan, uta
 - Tema navy–emerald dan adaptive launcher icon **Cashflow Orbit**.
 - Kebijakan privasi di dalam aplikasi dan repository.
 - Room Database 2.8.4 dengan migrasi non-destruktif v1 → v2 → v3 → v4 → v5 → v6 → v7 → v8.
-- Unit test, kompilasi tes migrasi Android, lint, dependency review, debug/release CI, dan signed release pipeline.
+- Unit test, lint, Dependency Review, debug/release CI, dan tes instrumentasi nyata pada emulator Android 15/API 35.
+- Smoke test emulator mencakup peluncuran aplikasi, migrasi Room, ekspor database, backup terenkripsi, pemulihan data, dan `PRAGMA quick_check`.
 
-Tahap berikutnya berfokus pada pengujian instrumentasi di emulator/perangkat, signed production release, privacy policy URL publik, dan Google Play Internal/Closed Testing.
+Tahap berikutnya berfokus pada private release keystore, signed production release, privacy policy URL publik, pengujian perangkat fisik, dan Google Play Internal/Closed Testing.
 
 Lihat [status proyek](PROJECT_STATUS.md) untuk batas implementasi saat ini.
 
@@ -48,6 +49,14 @@ Gunakan JDK 17 dan Android SDK 36:
 ./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
 ./gradlew assembleRelease
 ```
+
+Untuk menjalankan seluruh tes instrumentasi pada emulator Android 15/API 35 di Linux dengan Android SDK terpasang:
+
+```bash
+bash scripts/run-connected-tests.sh
+```
+
+Script tersebut memasang system image resmi Android, membuat AVD, menunggu emulator selesai boot, lalu menjalankan `connectedDebugAndroidTest`.
 
 Pada pemanggilan pertama, launcher `gradlew` memasang Gradle Wrapper 9.3.1 dari repository resmi melalui HTTPS. File JAR dan distribusi Gradle diverifikasi dengan SHA-256 resmi.
 
@@ -100,7 +109,8 @@ Workflow release berjalan saat tag `v*` dibuat atau melalui `workflow_dispatch`.
 - Dependabot memeriksa Gradle dan GitHub Actions setiap minggu.
 - Dependency Review menolak kerentanan baru tingkat `moderate` atau lebih tinggi.
 - Lisensi GPL-3.0 dan AGPL-3.0 ditolak pada dependency review.
-- CI menjalankan lint, unit test, debug build, instrumentation-test APK, release/R8 build, dan dependency report.
+- CI menjalankan lint, unit test, debug build, release/R8 build, dependency report, dan `connectedDebugAndroidTest` pada emulator Android resmi.
+- Runner emulator menggunakan `sdkmanager`, `avdmanager`, dan `adb`, tanpa action emulator pihak ketiga.
 - Repository tidak menyimpan keystore, password, token, atau API key.
 
 ## Batas perhitungan
