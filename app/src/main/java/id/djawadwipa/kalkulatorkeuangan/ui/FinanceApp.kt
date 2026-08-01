@@ -72,7 +72,7 @@ private enum class AppTab(val label: String, val symbol: String) {
     HOME("Beranda", "⌂"),
     TRANSACTIONS("Transaksi", "↕"),
     BUDGET("Budget", "◎"),
-    ANALYTICS("Analisis", "▥"),
+    REPORTS("Laporan", "▥"),
     MORE("Lainnya", "⋯"),
 }
 
@@ -160,11 +160,7 @@ fun FinanceApp(viewModel: MainViewModel) {
                 modifier = Modifier.padding(padding),
             )
 
-            AppTab.ANALYTICS -> AnalyticsScreen(
-                state = state,
-                onPreviousMonth = viewModel::previousMonth,
-                onNextMonth = viewModel::nextMonth,
-                onCurrentMonth = viewModel::selectCurrentMonth,
+            AppTab.REPORTS -> ReportsScreen(
                 modifier = Modifier.padding(padding),
             )
 
@@ -399,36 +395,20 @@ private fun TransactionEditorDialog(
     onDismiss: () -> Unit,
     onSave: (TransactionDraft) -> Unit,
 ) {
-    var type by rememberSaveable(transaction?.id) {
-        mutableStateOf(transaction?.type ?: TransactionType.EXPENSE)
-    }
-    var amount by rememberSaveable(transaction?.id) {
-        mutableStateOf(transaction?.amount?.toString().orEmpty())
-    }
-    var accountId by rememberSaveable(transaction?.id) {
-        mutableStateOf(transaction?.accountId ?: accounts.firstOrNull()?.id ?: 0L)
-    }
-    var categoryId by rememberSaveable(transaction?.id) {
-        mutableStateOf(transaction?.categoryId ?: 0L)
-    }
-    var description by rememberSaveable(transaction?.id) {
-        mutableStateOf(transaction?.description.orEmpty())
-    }
-    var occurredAt by rememberSaveable(transaction?.id) {
-        mutableStateOf(transaction?.occurredAt ?: System.currentTimeMillis())
-    }
+    var type by rememberSaveable(transaction?.id) { mutableStateOf(transaction?.type ?: TransactionType.EXPENSE) }
+    var amount by rememberSaveable(transaction?.id) { mutableStateOf(transaction?.amount?.toString().orEmpty()) }
+    var accountId by rememberSaveable(transaction?.id) { mutableStateOf(transaction?.accountId ?: accounts.firstOrNull()?.id ?: 0L) }
+    var categoryId by rememberSaveable(transaction?.id) { mutableStateOf(transaction?.categoryId ?: 0L) }
+    var description by rememberSaveable(transaction?.id) { mutableStateOf(transaction?.description.orEmpty()) }
+    var occurredAt by rememberSaveable(transaction?.id) { mutableStateOf(transaction?.occurredAt ?: System.currentTimeMillis()) }
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
 
     val matchingCategories = categories.filter { it.type == type }
     LaunchedEffect(type, matchingCategories) {
-        if (matchingCategories.none { it.id == categoryId }) {
-            categoryId = matchingCategories.firstOrNull()?.id ?: 0L
-        }
+        if (matchingCategories.none { it.id == categoryId }) categoryId = matchingCategories.firstOrNull()?.id ?: 0L
     }
     LaunchedEffect(accounts) {
-        if (accounts.none { it.id == accountId }) {
-            accountId = accounts.firstOrNull()?.id ?: 0L
-        }
+        if (accounts.none { it.id == accountId }) accountId = accounts.firstOrNull()?.id ?: 0L
     }
 
     val parsedAmount = amount.toLongOrNull()
@@ -442,11 +422,7 @@ private fun TransactionEditorDialog(
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TransactionType.entries.forEach { option ->
-                            FilterChip(
-                                selected = type == option,
-                                onClick = { type = option },
-                                label = { Text(option.label) },
-                            )
+                            FilterChip(selected = type == option, onClick = { type = option }, label = { Text(option.label) })
                         }
                     }
                 }
@@ -471,17 +447,13 @@ private fun TransactionEditorDialog(
                 item {
                     SelectionMenu(
                         label = "Kategori",
-                        selectedLabel = matchingCategories.firstOrNull { it.id == categoryId }?.name
-                            ?: "Pilih kategori",
+                        selectedLabel = matchingCategories.firstOrNull { it.id == categoryId }?.name ?: "Pilih kategori",
                         options = matchingCategories.map { it.id to it.name },
                         onSelected = { categoryId = it },
                     )
                 }
                 item {
-                    OutlinedButton(
-                        onClick = { showDatePicker = true },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
+                    OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
                         Text("Tanggal: ${formatDate(occurredAt)}")
                     }
                 }
@@ -510,15 +482,9 @@ private fun TransactionEditorDialog(
                         ),
                     )
                 },
-            ) {
-                Text("Simpan")
-            }
+            ) { Text("Simpan") }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Batal")
-            }
-        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal") } },
     )
 
     if (showDatePicker) {
@@ -526,23 +492,13 @@ private fun TransactionEditorDialog(
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        occurredAt = datePickerState.selectedDateMillis ?: occurredAt
-                        showDatePicker = false
-                    },
-                ) {
-                    Text("Pilih")
-                }
+                TextButton(onClick = {
+                    occurredAt = datePickerState.selectedDateMillis ?: occurredAt
+                    showDatePicker = false
+                }) { Text("Pilih") }
             },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Batal")
-                }
-            },
-        ) {
-            DatePicker(state = datePickerState)
-        }
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Batal") } },
+        ) { DatePicker(state = datePickerState) }
     }
 }
 
@@ -557,25 +513,15 @@ internal fun SelectionMenu(
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium)
         Box(modifier = Modifier.fillMaxWidth()) {
-            OutlinedButton(
-                onClick = { expanded = true },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = options.isNotEmpty(),
-            ) {
+            OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth(), enabled = options.isNotEmpty()) {
                 Text(selectedLabel)
             }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { (id, text) ->
-                    DropdownMenuItem(
-                        text = { Text(text) },
-                        onClick = {
-                            onSelected(id)
-                            expanded = false
-                        },
-                    )
+                    DropdownMenuItem(text = { Text(text) }, onClick = {
+                        onSelected(id)
+                        expanded = false
+                    })
                 }
             }
         }
@@ -585,10 +531,7 @@ internal fun SelectionMenu(
 @Composable
 internal fun MetricCard(label: String, value: String, modifier: Modifier) {
     Card(modifier = modifier, shape = RoundedCornerShape(16.dp)) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
         }
@@ -603,15 +546,8 @@ private fun TransactionSummaryRow(transaction: FinanceTransaction) {
 }
 
 @Composable
-private fun TransactionManageRow(
-    transaction: FinanceTransaction,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onEdit),
-        shape = RoundedCornerShape(16.dp),
-    ) {
+private fun TransactionManageRow(transaction: FinanceTransaction, onEdit: () -> Unit, onDelete: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onEdit), shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
             TransactionContent(transaction = transaction)
             Spacer(Modifier.height(6.dp))
@@ -624,32 +560,16 @@ private fun TransactionManageRow(
 }
 
 @Composable
-private fun TransactionContent(
-    transaction: FinanceTransaction,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
+private fun TransactionContent(transaction: FinanceTransaction, modifier: Modifier = Modifier) {
+    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Column(Modifier.weight(1f)) {
             Text(transaction.categoryName, fontWeight = FontWeight.Bold)
-            Text(
-                transaction.description.ifBlank { "Tanpa catatan" },
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                "${transaction.accountName} • ${formatDate(transaction.occurredAt)}",
-                style = MaterialTheme.typography.labelSmall,
-            )
+            Text(transaction.description.ifBlank { "Tanpa catatan" }, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("${transaction.accountName} • ${formatDate(transaction.occurredAt)}", style = MaterialTheme.typography.labelSmall)
         }
         Text(
             (if (transaction.type == TransactionType.INCOME) "+" else "−") + rupiah(transaction.amount),
-            color = if (transaction.type == TransactionType.INCOME) {
-                Emerald
-            } else {
-                MaterialTheme.colorScheme.error
-            },
+            color = if (transaction.type == TransactionType.INCOME) Emerald else MaterialTheme.colorScheme.error,
             fontWeight = FontWeight.Bold,
         )
     }
@@ -668,22 +588,13 @@ internal fun MasterDataRow(title: String, subtitle: String) {
 @Composable
 internal fun EmptyState(text: String) {
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-        Text(
-            text,
-            modifier = Modifier.padding(20.dp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Text(text, modifier = Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 internal fun SectionTitle(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(bottom = 6.dp),
-    )
+    Text(text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
 }
 
 internal fun rupiah(value: Long): String = NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply {
@@ -695,12 +606,8 @@ internal fun percent(value: Double): String = NumberFormat.getPercentInstance(Lo
     maximumFractionDigits = 1
 }.format(value / 100.0)
 
-internal fun formatDate(value: Long): String = DateFormat.getDateInstance(
-    DateFormat.MEDIUM,
-    Locale("id", "ID"),
-).format(Date(value))
+internal fun formatDate(value: Long): String = DateFormat.getDateInstance(DateFormat.MEDIUM, Locale("id", "ID")).format(Date(value))
 
-internal fun formatMonth(value: Long): String = SimpleDateFormat(
-    "MMMM yyyy",
-    Locale("id", "ID"),
-).format(Date(value.takeIf { it > 0L } ?: System.currentTimeMillis()))
+internal fun formatMonth(value: Long): String = SimpleDateFormat("MMMM yyyy", Locale("id", "ID")).format(
+    Date(value.takeIf { it > 0L } ?: System.currentTimeMillis()),
+)

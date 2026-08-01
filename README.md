@@ -16,7 +16,7 @@ Aplikasi Android native murni untuk pencatatan, perencanaan, perhitungan, dan an
 
 ## Status implementasi
 
-Versi `0.4.0` menyediakan fondasi transaksi, perencanaan, tabungan, dan analisis yang dapat dibuild:
+Versi `0.5.0` menyediakan fondasi transaksi, perencanaan, tabungan, arus kas, dan laporan bulanan yang dapat dibuild:
 
 - Dashboard arus kas bulan berjalan dan progres target pemasukan.
 - Profil keuangan lokal: nama/panggilan, target pemasukan, dan target tabungan.
@@ -24,17 +24,20 @@ Versi `0.4.0` menyediakan fondasi transaksi, perencanaan, tabungan, dan analisis
 - Master rekening dan kategori dengan relasi foreign key.
 - Pencarian dan filter transaksi.
 - Budget bulanan per kategori pengeluaran beserta realisasi dan status.
-- Analisis pengeluaran per bulan: total, rata-rata harian, kategori terbesar, dan komposisi kategori.
 - Target tabungan, dana darurat, dan target keuangan dengan CRUD lengkap.
 - Riwayat setoran per target, progres, sisa nominal, tenggat, status, dan estimasi tanggal tercapai.
-- Cakupan dana darurat dalam bulan berdasarkan pengeluaran bulan berjalan.
-- Saving rate, expense ratio, budget adherence, emergency-fund coverage, dan Financial Health Score.
+- Laporan arus kas bulanan dengan pemasukan, pengeluaran, saldo bersih, saving rate, dan jumlah transaksi.
+- Perbandingan pemasukan, pengeluaran, dan arus kas dengan bulan sebelumnya.
+- Tren arus kas 12 bulan, rincian kategori pengeluaran, dan aktivitas per rekening.
+- Evaluasi pribadi per bulan dengan nilai, sorotan, dan rencana perbaikan.
+- Snapshot laporan bulanan yang dapat disimpan, diperbarui, dan dihapus secara lokal.
+- Cakupan dana darurat, budget adherence, expense ratio, dan Financial Health Score.
 - Tema navy–emerald dan adaptive launcher icon **Cashflow Orbit**.
 - Kebijakan privasi di dalam aplikasi dan repository.
-- Room Database 2.8.4 dengan migrasi non-destruktif v1 → v2 → v3 → v4.
+- Room Database 2.8.4 dengan migrasi non-destruktif v1 → v2 → v3 → v4 → v5.
 - Unit test, kompilasi tes migrasi Android, lint, dependency review, debug/release CI, dan signed release pipeline.
 
-Modul berikut telah dipetakan untuk iterasi selanjutnya: cash flow dan laporan bulanan lanjutan, cicilan dan utang, debt snowball, debt avalanche, investasi, simulasi investasi, aset-liabilitas, net worth, serta financial freedom.
+Modul berikut telah dipetakan untuk iterasi selanjutnya: cicilan dan utang, debt snowball, debt avalanche, investasi, simulasi investasi, aset-liabilitas, net worth, serta financial freedom.
 
 Lihat [status proyek](PROJECT_STATUS.md) untuk batas implementasi saat ini.
 

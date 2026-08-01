@@ -120,6 +120,70 @@ data class MonthlyAnalysis(
     val budget: BudgetSummary = BudgetSummary(),
 )
 
+data class MonthlyCashFlow(
+    val monthStart: Long = 0,
+    val income: Long = 0,
+    val expense: Long = 0,
+    val netCashFlow: Long = 0,
+    val savingsRate: Double = 0.0,
+    val transactionCount: Int = 0,
+)
+
+data class CashFlowChange(
+    val incomePercent: Double? = 0.0,
+    val expensePercent: Double? = 0.0,
+    val netAmount: Long = 0,
+)
+
+data class ReportCategorySummary(
+    val categoryName: String,
+    val amount: Long,
+    val sharePercent: Double,
+)
+
+data class ReportAccountSummary(
+    val accountId: Long,
+    val accountName: String,
+    val income: Long,
+    val expense: Long,
+    val netCashFlow: Long,
+)
+
+data class MonthlyFinancialReport(
+    val monthStart: Long = 0,
+    val cashFlow: MonthlyCashFlow = MonthlyCashFlow(),
+    val previousMonth: MonthlyCashFlow = MonthlyCashFlow(),
+    val change: CashFlowChange = CashFlowChange(),
+    val trend: List<MonthlyCashFlow> = emptyList(),
+    val incomeCategories: List<ReportCategorySummary> = emptyList(),
+    val expenseCategories: List<ReportCategorySummary> = emptyList(),
+    val accounts: List<ReportAccountSummary> = emptyList(),
+    val transactions: List<FinanceTransaction> = emptyList(),
+    val budget: BudgetSummary = BudgetSummary(),
+    val healthScore: Int = 0,
+    val emergencyFundMonths: Double = 0.0,
+)
+
+data class MonthlyReview(
+    val monthStart: Long,
+    val score: Int,
+    val highlight: String,
+    val improvement: String,
+    val updatedAt: Long,
+)
+
+data class MonthlyReportSnapshot(
+    val id: Long,
+    val monthStart: Long,
+    val income: Long,
+    val expense: Long,
+    val netCashFlow: Long,
+    val savingsRate: Double,
+    val budgetAdherence: Double,
+    val healthScore: Int,
+    val generatedAt: Long,
+)
+
 data class SavingsGoalDraft(
     val name: String,
     val type: SavingsGoalType,

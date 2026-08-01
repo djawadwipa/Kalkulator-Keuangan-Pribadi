@@ -129,7 +129,7 @@ internal fun MoreScreen(
                 Text("Hapus seluruh transaksi lokal")
             }
         }
-        item { Text("Versi 0.4.0 • id.djawadwipa.kalkulatorkeuangan") }
+        item { Text("Versi 0.5.0 • id.djawadwipa.kalkulatorkeuangan") }
     }
 
     if (showProfileDialog) {
