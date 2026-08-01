@@ -604,17 +604,27 @@ internal fun MasterDataRow(
     subtitle: String,
     onClick: (() -> Unit)? = null,
 ) {
-    val cardModifier = if (onClick == null) {
-        Modifier.fillMaxWidth()
-    } else {
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    }
-    Card(cardModifier, shape = RoundedCornerShape(14.dp)) {
+    val content: @Composable () -> Unit = {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Text(title, fontWeight = FontWeight.SemiBold)
             Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+
+    if (onClick == null) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+        ) {
+            content()
+        }
+    } else {
+        Card(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+        ) {
+            content()
         }
     }
 }
