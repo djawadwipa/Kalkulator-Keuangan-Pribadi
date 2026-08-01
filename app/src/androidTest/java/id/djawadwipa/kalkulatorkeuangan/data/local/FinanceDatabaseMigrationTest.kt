@@ -27,7 +27,7 @@ class FinanceDatabaseMigrationTest {
     }
 
     @Test
-    fun migration1To6PreservesTransactionsAndCreatesAllFeatureTables() {
+    fun migration1To7PreservesTransactionsAndCreatesAllFeatureTables() {
         createVersionOneDatabase()
 
         val roomDatabase = Room.databaseBuilder(
@@ -41,6 +41,7 @@ class FinanceDatabaseMigrationTest {
                 FinanceDatabase.MIGRATION_3_4,
                 FinanceDatabase.MIGRATION_4_5,
                 FinanceDatabase.MIGRATION_5_6,
+                FinanceDatabase.MIGRATION_6_7,
             )
             .allowMainThreadQueries()
             .build()
@@ -65,7 +66,14 @@ class FinanceDatabaseMigrationTest {
             assertTrue(cursor.moveToFirst())
             assertEquals(20, cursor.getInt(0))
         }
-        listOf("monthly_reviews", "monthly_report_snapshots", "debts", "debt_payments").forEach { table ->
+        listOf(
+            "monthly_reviews",
+            "monthly_report_snapshots",
+            "debts",
+            "debt_payments",
+            "investment_assets",
+            "investment_transactions",
+        ).forEach { table ->
             roomDatabase.openHelper.readableDatabase.query("SELECT COUNT(*) FROM $table").use { cursor ->
                 assertTrue(cursor.moveToFirst())
                 assertEquals(0, cursor.getInt(0))
@@ -75,7 +83,7 @@ class FinanceDatabaseMigrationTest {
     }
 
     @Test
-    fun migration3To6CreatesSavingsReportAndDebtRelations() {
+    fun migration3To7CreatesSavingsReportDebtAndInvestmentRelations() {
         createVersionThreeDatabase()
 
         val roomDatabase = Room.databaseBuilder(
@@ -87,6 +95,7 @@ class FinanceDatabaseMigrationTest {
                 FinanceDatabase.MIGRATION_3_4,
                 FinanceDatabase.MIGRATION_4_5,
                 FinanceDatabase.MIGRATION_5_6,
+                FinanceDatabase.MIGRATION_6_7,
             )
             .allowMainThreadQueries()
             .build()
@@ -127,6 +136,22 @@ class FinanceDatabaseMigrationTest {
         db.execSQL(
             "INSERT INTO debt_payments(debt_id, amount, paid_at, note) VALUES (1, 500000, 1706745600000, 'Pembayaran pertama')",
         )
+        db.execSQL(
+            """
+            INSERT INTO investment_assets(
+                id, name, symbol, provider, type, units, average_cost, current_price,
+                target_allocation_percent, is_archived, created_at, updated_at
+            ) VALUES (1, 'Reksa Dana Indeks', 'RDI', 'Platform Contoh', 'MUTUAL_FUND',
+                10.0, 100000, 120000, 50.0, 0, 1, 1)
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO investment_transactions(
+                asset_id, type, units, unit_price, amount, fee, transacted_at, note
+            ) VALUES (1, 'BUY', 10.0, 100000, 1000000, 0, 1706745600000, 'Pembelian awal')
+            """.trimIndent(),
+        )
 
         db.query("SELECT amount FROM savings_contributions WHERE goal_id = 1").use { cursor ->
             assertTrue(cursor.moveToFirst())
@@ -144,6 +169,10 @@ class FinanceDatabaseMigrationTest {
             assertTrue(cursor.moveToFirst())
             assertEquals(500_000L, cursor.getLong(0))
         }
+        db.query("SELECT amount FROM investment_transactions WHERE asset_id = 1").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(1_000_000L, cursor.getLong(0))
+        }
 
         db.execSQL("DELETE FROM savings_goals WHERE id = 1")
         db.query("SELECT COUNT(*) FROM savings_contributions").use { cursor ->
@@ -152,6 +181,11 @@ class FinanceDatabaseMigrationTest {
         }
         db.execSQL("DELETE FROM debts WHERE id = 1")
         db.query("SELECT COUNT(*) FROM debt_payments").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
+        }
+        db.execSQL("DELETE FROM investment_assets WHERE id = 1")
+        db.query("SELECT COUNT(*) FROM investment_transactions").use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals(0, cursor.getInt(0))
         }

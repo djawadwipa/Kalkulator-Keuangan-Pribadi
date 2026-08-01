@@ -20,12 +20,15 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         MonthlyReportSnapshotEntity::class,
         DebtEntity::class,
         DebtPaymentEntity::class,
+        InvestmentAssetEntity::class,
+        InvestmentTransactionEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class FinanceDatabase : RoomDatabase() {
     abstract fun financeDao(): FinanceDao
+    abstract fun investmentDao(): InvestmentDao
 
     companion object {
         private const val DATABASE_NAME = "kalkulator_keuangan.db"
@@ -208,6 +211,47 @@ abstract class FinanceDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `investment_assets` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `symbol` TEXT NOT NULL,
+                        `provider` TEXT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `units` REAL NOT NULL,
+                        `average_cost` INTEGER NOT NULL,
+                        `current_price` INTEGER NOT NULL,
+                        `target_allocation_percent` REAL NOT NULL,
+                        `is_archived` INTEGER NOT NULL,
+                        `created_at` INTEGER NOT NULL,
+                        `updated_at` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_investment_assets_type` ON `investment_assets` (`type`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_investment_assets_is_archived` ON `investment_assets` (`is_archived`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_investment_assets_name` ON `investment_assets` (`name`)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `investment_transactions` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `asset_id` INTEGER NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `units` REAL NOT NULL,
+                        `unit_price` INTEGER NOT NULL,
+                        `amount` INTEGER NOT NULL,
+                        `fee` INTEGER NOT NULL,
+                        `transacted_at` INTEGER NOT NULL,
+                        `note` TEXT NOT NULL,
+                        FOREIGN KEY(`asset_id`) REFERENCES `investment_assets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_investment_transactions_asset_id` ON `investment_transactions` (`asset_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_investment_transactions_type` ON `investment_transactions` (`type`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_investment_transactions_transacted_at` ON `investment_transactions` (`transacted_at`)")
+            }
+        }
+
         @Volatile
         private var instance: FinanceDatabase? = null
 
@@ -223,6 +267,7 @@ abstract class FinanceDatabase : RoomDatabase() {
                     MIGRATION_3_4,
                     MIGRATION_4_5,
                     MIGRATION_5_6,
+                    MIGRATION_6_7,
                 )
                 .build()
                 .also { instance = it }

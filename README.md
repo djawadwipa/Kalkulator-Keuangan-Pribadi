@@ -16,7 +16,7 @@ Aplikasi Android native murni untuk pencatatan, perencanaan, perhitungan, dan an
 
 ## Status implementasi
 
-Versi `0.6.0` menyediakan fondasi transaksi, perencanaan, tabungan, laporan, serta pengelolaan utang yang dapat dibuild:
+Versi `0.7.0` menyediakan fondasi transaksi, perencanaan, tabungan, laporan, utang, serta investasi yang dapat dibuild:
 
 - Dashboard arus kas bulan berjalan dan progres target pemasukan.
 - Profil keuangan lokal: nama/panggilan, target pemasukan, dan target tabungan.
@@ -27,19 +27,21 @@ Versi `0.6.0` menyediakan fondasi transaksi, perencanaan, tabungan, laporan, ser
 - Target tabungan, dana darurat, dan target keuangan dengan CRUD lengkap.
 - Riwayat setoran per target, progres, sisa nominal, tenggat, status, dan estimasi tanggal tercapai.
 - Laporan arus kas bulanan, perbandingan bulan sebelumnya, dan tren 12 bulan.
-- Rincian kategori pengeluaran dan aktivitas per rekening.
-- Evaluasi pribadi dan snapshot laporan bulanan lokal.
-- CRUD cicilan dan utang dengan jenis, kreditur, bunga, minimum pembayaran, jatuh tempo, serta target pelunasan.
-- Riwayat pembayaran utang dengan saldo dan progres yang dihitung otomatis.
-- Simulasi **Debt Snowball** dan **Debt Avalanche**.
-- Anggaran pembayaran bulanan, estimasi bebas utang, urutan pelunasan, dan estimasi total bunga.
+- Rincian kategori pengeluaran, aktivitas per rekening, evaluasi pribadi, dan snapshot laporan lokal.
+- CRUD cicilan dan utang dengan riwayat pembayaran.
+- Simulasi **Debt Snowball** dan **Debt Avalanche** beserta estimasi bebas utang dan bunga.
+- CRUD aset investasi: deposito, obligasi/SBN, reksa dana, saham, emas, kripto, dan aset lain.
+- Transaksi beli, jual, dividen/hasil, dan biaya investasi.
+- Perhitungan unit, harga rata-rata, cost basis, nilai pasar, keuntungan/rugi, return, serta alokasi portofolio.
+- Harga pasar dan target alokasi diperbarui manual tanpa akses internet.
+- Simulasi investasi dengan modal awal, setoran bulanan, compounding, return tahunan, durasi, dan inflasi.
 - Cakupan dana darurat, budget adherence, expense ratio, dan Financial Health Score.
 - Tema navy–emerald dan adaptive launcher icon **Cashflow Orbit**.
 - Kebijakan privasi di dalam aplikasi dan repository.
-- Room Database 2.8.4 dengan migrasi non-destruktif v1 → v2 → v3 → v4 → v5 → v6.
+- Room Database 2.8.4 dengan migrasi non-destruktif v1 → v2 → v3 → v4 → v5 → v6 → v7.
 - Unit test, kompilasi tes migrasi Android, lint, dependency review, debug/release CI, dan signed release pipeline.
 
-Modul berikut telah dipetakan untuk iterasi selanjutnya: investasi, simulasi investasi, aset-liabilitas, net worth, Financial Health Score lanjutan, financial freedom, serta ekspor/impor data.
+Modul berikut telah dipetakan untuk iterasi selanjutnya: aset-liabilitas, net worth, Financial Health Score lanjutan, financial freedom, serta ekspor/impor dan backup data.
 
 Lihat [status proyek](PROJECT_STATUS.md) untuk batas implementasi saat ini.
 
@@ -106,6 +108,10 @@ Pipeline memverifikasi package ID, status non-debuggable, permission, signature 
 - Lisensi GPL-3.0 dan AGPL-3.0 ditolak pada dependency review.
 - CI membuat dependency report dan menjalankan lint, unit test, debug build, instrumentation-test APK, serta release/R8 build.
 - Repository tidak menyimpan keystore, password, token, atau API key.
+
+## Batas simulasi
+
+Simulasi pelunasan utang dan investasi adalah alat perencanaan berdasarkan asumsi yang dimasukkan pengguna. Hasilnya bukan jaminan return, rekomendasi investasi, atau pengganti tagihan dan informasi resmi penyedia produk keuangan.
 
 ## Distribusi
 
