@@ -15,6 +15,8 @@ fi
 
 SYSTEM_IMAGE="system-images;android-35;google_apis;x86_64"
 AVD_NAME="kkp-ci-api-35"
+export ANDROID_SDK_HOME="$HOME"
+export ANDROID_AVD_HOME="$HOME/.android/avd"
 
 set +o pipefail
 yes | "$SDKMANAGER" \
@@ -33,13 +35,19 @@ if [[ -e /dev/kvm ]]; then
   sudo chmod 666 /dev/kvm
 fi
 
-mkdir -p "$HOME/.android"
+mkdir -p "$ANDROID_AVD_HOME"
 touch "$HOME/.android/repositories.cfg"
 echo "no" | "$AVDMANAGER" create avd \
   --force \
   --name "$AVD_NAME" \
   --package "$SYSTEM_IMAGE" \
   --device "pixel_6"
+
+if ! "$EMULATOR" -list-avds | grep -Fxq "$AVD_NAME"; then
+  echo "AVD $AVD_NAME tidak ditemukan setelah dibuat." >&2
+  find "$HOME/.android" -maxdepth 3 -type f -print >&2 || true
+  exit 1
+fi
 
 "$EMULATOR" \
   -avd "$AVD_NAME" \
