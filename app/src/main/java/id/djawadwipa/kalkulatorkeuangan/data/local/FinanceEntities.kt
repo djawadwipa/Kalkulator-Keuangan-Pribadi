@@ -115,6 +115,58 @@ data class BudgetEntity(
     val updatedAt: Long,
 )
 
+@Entity(
+    tableName = "savings_goals",
+    indices = [
+        Index(value = ["type"]),
+        Index(value = ["is_archived"]),
+    ],
+)
+data class SavingsGoalEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val name: String,
+    val type: String,
+    @ColumnInfo(name = "target_amount")
+    val targetAmount: Long,
+    @ColumnInfo(name = "target_date")
+    val targetDate: Long? = null,
+    @ColumnInfo(name = "monthly_contribution_target")
+    val monthlyContributionTarget: Long = 0,
+    @ColumnInfo(name = "is_archived")
+    val isArchived: Boolean = false,
+    @ColumnInfo(name = "created_at")
+    val createdAt: Long,
+    @ColumnInfo(name = "updated_at")
+    val updatedAt: Long,
+)
+
+@Entity(
+    tableName = "savings_contributions",
+    foreignKeys = [
+        ForeignKey(
+            entity = SavingsGoalEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["goal_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [
+        Index(value = ["goal_id"]),
+        Index(value = ["contributed_at"]),
+    ],
+)
+data class SavingsContributionEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    @ColumnInfo(name = "goal_id")
+    val goalId: Long,
+    val amount: Long,
+    @ColumnInfo(name = "contributed_at")
+    val contributedAt: Long,
+    val note: String = "",
+)
+
 data class TransactionRecord(
     val id: Long,
     val type: String,
@@ -152,4 +204,34 @@ data class CategorySpendingRecord(
     @ColumnInfo(name = "category_name")
     val categoryName: String,
     val amount: Long,
+)
+
+data class SavingsGoalRecord(
+    val id: Long,
+    val name: String,
+    val type: String,
+    @ColumnInfo(name = "target_amount")
+    val targetAmount: Long,
+    @ColumnInfo(name = "target_date")
+    val targetDate: Long?,
+    @ColumnInfo(name = "monthly_contribution_target")
+    val monthlyContributionTarget: Long,
+    @ColumnInfo(name = "current_amount")
+    val currentAmount: Long,
+    @ColumnInfo(name = "created_at")
+    val createdAt: Long,
+    @ColumnInfo(name = "updated_at")
+    val updatedAt: Long,
+)
+
+data class SavingsContributionRecord(
+    val id: Long,
+    @ColumnInfo(name = "goal_id")
+    val goalId: Long,
+    @ColumnInfo(name = "goal_name")
+    val goalName: String,
+    val amount: Long,
+    @ColumnInfo(name = "contributed_at")
+    val contributedAt: Long,
+    val note: String,
 )
