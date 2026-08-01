@@ -63,7 +63,7 @@ class DebtPayoffCalculatorTest {
 
         assertFalse(plan.feasible)
         assertEquals(210_000L, plan.minimumRequired)
-        assertEquals(null, plan.monthsToDebtFree)
+        assertTrue(plan.monthsToDebtFree == null)
     }
 
     private fun sampleDebts(): List<Debt> = listOf(
