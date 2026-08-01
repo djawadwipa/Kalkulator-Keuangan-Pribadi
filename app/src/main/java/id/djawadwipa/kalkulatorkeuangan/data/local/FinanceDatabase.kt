@@ -18,8 +18,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SavingsContributionEntity::class,
         MonthlyReviewEntity::class,
         MonthlyReportSnapshotEntity::class,
+        DebtEntity::class,
+        DebtPaymentEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class FinanceDatabase : RoomDatabase() {
@@ -169,6 +171,43 @@ abstract class FinanceDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `debts` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `creditor` TEXT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `starting_balance` INTEGER NOT NULL,
+                        `annual_interest_rate` REAL NOT NULL,
+                        `minimum_payment` INTEGER NOT NULL,
+                        `due_day` INTEGER NOT NULL,
+                        `start_date` INTEGER NOT NULL,
+                        `target_payoff_date` INTEGER,
+                        `is_archived` INTEGER NOT NULL,
+                        `created_at` INTEGER NOT NULL,
+                        `updated_at` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_type` ON `debts` (`type`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_is_archived` ON `debts` (`is_archived`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_due_day` ON `debts` (`due_day`)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `debt_payments` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `debt_id` INTEGER NOT NULL,
+                        `amount` INTEGER NOT NULL,
+                        `paid_at` INTEGER NOT NULL,
+                        `note` TEXT NOT NULL,
+                        FOREIGN KEY(`debt_id`) REFERENCES `debts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_debt_id` ON `debt_payments` (`debt_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_paid_at` ON `debt_payments` (`paid_at`)")
+            }
+        }
+
         @Volatile
         private var instance: FinanceDatabase? = null
 
@@ -178,7 +217,13 @@ abstract class FinanceDatabase : RoomDatabase() {
                 FinanceDatabase::class.java,
                 DATABASE_NAME,
             )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(
+                    MIGRATION_1_2,
+                    MIGRATION_2_3,
+                    MIGRATION_3_4,
+                    MIGRATION_4_5,
+                    MIGRATION_5_6,
+                )
                 .build()
                 .also { instance = it }
         }

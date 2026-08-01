@@ -27,7 +27,7 @@ class FinanceDatabaseMigrationTest {
     }
 
     @Test
-    fun migration1To5PreservesTransactionsAndCreatesPlanningAndReportTables() {
+    fun migration1To6PreservesTransactionsAndCreatesAllFeatureTables() {
         createVersionOneDatabase()
 
         val roomDatabase = Room.databaseBuilder(
@@ -40,6 +40,7 @@ class FinanceDatabaseMigrationTest {
                 FinanceDatabase.MIGRATION_2_3,
                 FinanceDatabase.MIGRATION_3_4,
                 FinanceDatabase.MIGRATION_4_5,
+                FinanceDatabase.MIGRATION_5_6,
             )
             .allowMainThreadQueries()
             .build()
@@ -64,23 +65,17 @@ class FinanceDatabaseMigrationTest {
             assertTrue(cursor.moveToFirst())
             assertEquals(20, cursor.getInt(0))
         }
-        roomDatabase.openHelper.readableDatabase.query(
-            "SELECT COUNT(*) FROM monthly_reviews",
-        ).use { cursor ->
-            assertTrue(cursor.moveToFirst())
-            assertEquals(0, cursor.getInt(0))
-        }
-        roomDatabase.openHelper.readableDatabase.query(
-            "SELECT COUNT(*) FROM monthly_report_snapshots",
-        ).use { cursor ->
-            assertTrue(cursor.moveToFirst())
-            assertEquals(0, cursor.getInt(0))
+        listOf("monthly_reviews", "monthly_report_snapshots", "debts", "debt_payments").forEach { table ->
+            roomDatabase.openHelper.readableDatabase.query("SELECT COUNT(*) FROM $table").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
         }
         roomDatabase.close()
     }
 
     @Test
-    fun migration3To5CreatesSavingsAndReportRelations() {
+    fun migration3To6CreatesSavingsReportAndDebtRelations() {
         createVersionThreeDatabase()
 
         val roomDatabase = Room.databaseBuilder(
@@ -88,7 +83,11 @@ class FinanceDatabaseMigrationTest {
             FinanceDatabase::class.java,
             TEST_DATABASE,
         )
-            .addMigrations(FinanceDatabase.MIGRATION_3_4, FinanceDatabase.MIGRATION_4_5)
+            .addMigrations(
+                FinanceDatabase.MIGRATION_3_4,
+                FinanceDatabase.MIGRATION_4_5,
+                FinanceDatabase.MIGRATION_5_6,
+            )
             .allowMainThreadQueries()
             .build()
 
@@ -115,6 +114,20 @@ class FinanceDatabaseMigrationTest {
             ) VALUES (1704067200000, 10000000, 6000000, 4000000, 40.0, 90.0, 80, 1)
             """.trimIndent(),
         )
+        db.execSQL(
+            """
+            INSERT INTO debts(
+                id, name, creditor, type, starting_balance, annual_interest_rate,
+                minimum_payment, due_day, start_date, target_payoff_date,
+                is_archived, created_at, updated_at
+            ) VALUES (1, 'Kartu Kredit', 'Bank Contoh', 'CREDIT_CARD', 5000000, 24.0,
+                250000, 15, 1704067200000, NULL, 0, 1, 1)
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "INSERT INTO debt_payments(debt_id, amount, paid_at, note) VALUES (1, 500000, 1706745600000, 'Pembayaran pertama')",
+        )
+
         db.query("SELECT amount FROM savings_contributions WHERE goal_id = 1").use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals(2_000_000L, cursor.getLong(0))
@@ -127,8 +140,18 @@ class FinanceDatabaseMigrationTest {
             assertTrue(cursor.moveToFirst())
             assertEquals(4_000_000L, cursor.getLong(0))
         }
+        db.query("SELECT amount FROM debt_payments WHERE debt_id = 1").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(500_000L, cursor.getLong(0))
+        }
+
         db.execSQL("DELETE FROM savings_goals WHERE id = 1")
         db.query("SELECT COUNT(*) FROM savings_contributions").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
+        }
+        db.execSQL("DELETE FROM debts WHERE id = 1")
+        db.query("SELECT COUNT(*) FROM debt_payments").use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals(0, cursor.getInt(0))
         }

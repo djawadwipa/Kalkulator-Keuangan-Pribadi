@@ -97,6 +97,39 @@ interface FinanceDao {
     )
     fun observeSavingsContributions(): Flow<List<SavingsContributionRecord>>
 
+    @Query(
+        """
+        SELECT d.id, d.name, d.creditor, d.type, d.starting_balance,
+            d.annual_interest_rate, d.minimum_payment, d.due_day,
+            d.start_date, d.target_payoff_date,
+            COALESCE(SUM(p.amount), 0) AS paid_amount,
+            CASE
+                WHEN d.starting_balance - COALESCE(SUM(p.amount), 0) > 0
+                THEN d.starting_balance - COALESCE(SUM(p.amount), 0)
+                ELSE 0
+            END AS current_balance,
+            d.created_at, d.updated_at
+        FROM debts d
+        LEFT JOIN debt_payments p ON p.debt_id = d.id
+        WHERE d.is_archived = 0
+        GROUP BY d.id, d.name, d.creditor, d.type, d.starting_balance,
+            d.annual_interest_rate, d.minimum_payment, d.due_day,
+            d.start_date, d.target_payoff_date, d.created_at, d.updated_at
+        ORDER BY current_balance DESC, d.updated_at DESC, d.name COLLATE NOCASE
+        """,
+    )
+    fun observeDebts(): Flow<List<DebtRecord>>
+
+    @Query(
+        """
+        SELECT p.id, p.debt_id, d.name AS debt_name, p.amount, p.paid_at, p.note
+        FROM debt_payments p
+        INNER JOIN debts d ON d.id = p.debt_id
+        ORDER BY p.paid_at DESC, p.id DESC
+        """,
+    )
+    fun observeDebtPayments(): Flow<List<DebtPaymentRecord>>
+
     @Query("SELECT * FROM monthly_reviews WHERE month_start = :monthStart LIMIT 1")
     fun observeMonthlyReview(monthStart: Long): Flow<MonthlyReviewEntity?>
 
@@ -120,6 +153,12 @@ interface FinanceDao {
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertSavingsContribution(contribution: SavingsContributionEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertDebt(debt: DebtEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertDebtPayment(payment: DebtPaymentEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveProfile(profile: FinancialProfileEntity)
@@ -145,11 +184,20 @@ interface FinanceDao {
     @Update
     suspend fun updateSavingsGoal(goal: SavingsGoalEntity)
 
+    @Update
+    suspend fun updateDebt(debt: DebtEntity)
+
     @Query("SELECT id FROM budgets WHERE month_start = :monthStart AND category_id = :categoryId LIMIT 1")
     suspend fun findBudgetId(monthStart: Long, categoryId: Long): Long?
 
     @Query("SELECT * FROM savings_goals WHERE id = :id AND is_archived = 0 LIMIT 1")
     suspend fun findSavingsGoalById(id: Long): SavingsGoalEntity?
+
+    @Query("SELECT * FROM debts WHERE id = :id AND is_archived = 0 LIMIT 1")
+    suspend fun findDebtById(id: Long): DebtEntity?
+
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM debt_payments WHERE debt_id = :debtId")
+    suspend fun debtPaidAmount(debtId: Long): Long
 
     @Query("DELETE FROM budgets WHERE id = :id")
     suspend fun deleteBudgetById(id: Long)
@@ -159,6 +207,12 @@ interface FinanceDao {
 
     @Query("DELETE FROM savings_goals WHERE id = :id")
     suspend fun deleteSavingsGoalById(id: Long)
+
+    @Query("DELETE FROM debt_payments WHERE id = :id")
+    suspend fun deleteDebtPaymentById(id: Long)
+
+    @Query("DELETE FROM debts WHERE id = :id")
+    suspend fun deleteDebtById(id: Long)
 
     @Query("DELETE FROM monthly_report_snapshots WHERE id = :id")
     suspend fun deleteMonthlyReportSnapshotById(id: Long)

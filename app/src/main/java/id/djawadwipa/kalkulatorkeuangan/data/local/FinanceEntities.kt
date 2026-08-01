@@ -112,6 +112,39 @@ data class MonthlyReportSnapshotEntity(
     @ColumnInfo(name = "generated_at") val generatedAt: Long,
 )
 
+@Entity(
+    tableName = "debts",
+    indices = [Index(value = ["type"]), Index(value = ["is_archived"]), Index(value = ["due_day"])],
+)
+data class DebtEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val creditor: String,
+    val type: String,
+    @ColumnInfo(name = "starting_balance") val startingBalance: Long,
+    @ColumnInfo(name = "annual_interest_rate") val annualInterestRate: Double,
+    @ColumnInfo(name = "minimum_payment") val minimumPayment: Long,
+    @ColumnInfo(name = "due_day") val dueDay: Int,
+    @ColumnInfo(name = "start_date") val startDate: Long,
+    @ColumnInfo(name = "target_payoff_date") val targetPayoffDate: Long? = null,
+    @ColumnInfo(name = "is_archived") val isArchived: Boolean = false,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long,
+)
+
+@Entity(
+    tableName = "debt_payments",
+    foreignKeys = [ForeignKey(entity = DebtEntity::class, parentColumns = ["id"], childColumns = ["debt_id"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index(value = ["debt_id"]), Index(value = ["paid_at"])],
+)
+data class DebtPaymentEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "debt_id") val debtId: Long,
+    val amount: Long,
+    @ColumnInfo(name = "paid_at") val paidAt: Long,
+    val note: String = "",
+)
+
 data class TransactionRecord(
     val id: Long,
     val type: String,
@@ -157,5 +190,31 @@ data class SavingsContributionRecord(
     @ColumnInfo(name = "goal_name") val goalName: String,
     val amount: Long,
     @ColumnInfo(name = "contributed_at") val contributedAt: Long,
+    val note: String,
+)
+
+data class DebtRecord(
+    val id: Long,
+    val name: String,
+    val creditor: String,
+    val type: String,
+    @ColumnInfo(name = "starting_balance") val startingBalance: Long,
+    @ColumnInfo(name = "annual_interest_rate") val annualInterestRate: Double,
+    @ColumnInfo(name = "minimum_payment") val minimumPayment: Long,
+    @ColumnInfo(name = "due_day") val dueDay: Int,
+    @ColumnInfo(name = "start_date") val startDate: Long,
+    @ColumnInfo(name = "target_payoff_date") val targetPayoffDate: Long?,
+    @ColumnInfo(name = "paid_amount") val paidAmount: Long,
+    @ColumnInfo(name = "current_balance") val currentBalance: Long,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long,
+)
+
+data class DebtPaymentRecord(
+    val id: Long,
+    @ColumnInfo(name = "debt_id") val debtId: Long,
+    @ColumnInfo(name = "debt_name") val debtName: String,
+    val amount: Long,
+    @ColumnInfo(name = "paid_at") val paidAt: Long,
     val note: String,
 )
