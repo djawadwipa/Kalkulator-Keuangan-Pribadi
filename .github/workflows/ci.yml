@@ -2,13 +2,13 @@ name: Android CI
 
 on:
   push:
-    branches: [main, feat/sprint-7-net-worth]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: android-ci-${{ github.ref }}
@@ -49,23 +49,6 @@ jobs:
 
       - name: Unit test, lint, and debug builds
         run: ./gradlew --no-daemon --stacktrace testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
-
-      - name: Commit generated Room schema v8
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feat/sprint-7-net-worth'
-        shell: bash
-        run: |
-          set -euo pipefail
-          SCHEMA='app/schemas/id.djawadwipa.kalkulatorkeuangan.data.local.FinanceDatabase/8.json'
-          test -s "$SCHEMA"
-          if [[ -n "$(git status --porcelain -- "$SCHEMA")" ]]; then
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add "$SCHEMA"
-            git commit -m 'chore: lock Room schema v8'
-            git push origin HEAD:feat/sprint-7-net-worth
-          else
-            echo 'Room schema v8 already tracked and unchanged.'
-          fi
 
       - name: Release build with R8
         run: ./gradlew --no-daemon --stacktrace assembleRelease
