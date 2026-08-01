@@ -7,10 +7,13 @@ import id.djawadwipa.kalkulatorkeuangan.data.local.CategoryEntity
 import id.djawadwipa.kalkulatorkeuangan.data.local.CategorySpendingRecord
 import id.djawadwipa.kalkulatorkeuangan.data.local.FinanceDao
 import id.djawadwipa.kalkulatorkeuangan.data.local.FinancialProfileEntity
+import id.djawadwipa.kalkulatorkeuangan.data.local.SavingsContributionEntity
+import id.djawadwipa.kalkulatorkeuangan.data.local.SavingsGoalEntity
 import id.djawadwipa.kalkulatorkeuangan.data.local.TransactionEntity
 import id.djawadwipa.kalkulatorkeuangan.data.local.TransactionRecord
 import id.djawadwipa.kalkulatorkeuangan.domain.BudgetCalculator
 import id.djawadwipa.kalkulatorkeuangan.domain.FinancialCalculator
+import id.djawadwipa.kalkulatorkeuangan.domain.SavingsCalculator
 import id.djawadwipa.kalkulatorkeuangan.domain.TransactionValidator
 import id.djawadwipa.kalkulatorkeuangan.model.AccountType
 import id.djawadwipa.kalkulatorkeuangan.model.BudgetItem
@@ -23,6 +26,8 @@ import id.djawadwipa.kalkulatorkeuangan.model.FinancialHealthInput
 import id.djawadwipa.kalkulatorkeuangan.model.FinancialProfile
 import id.djawadwipa.kalkulatorkeuangan.model.FinancialProfileDraft
 import id.djawadwipa.kalkulatorkeuangan.model.MonthlyAnalysis
+import id.djawadwipa.kalkulatorkeuangan.model.SavingsGoal
+import id.djawadwipa.kalkulatorkeuangan.model.SavingsGoalType
 import id.djawadwipa.kalkulatorkeuangan.model.TransactionDraft
 import id.djawadwipa.kalkulatorkeuangan.model.TransactionType
 import java.util.Calendar
@@ -98,12 +103,18 @@ class FinanceRepository(
         BudgetCalculator.summary(currentMonthStart, rows.map(BudgetRecord::toModel))
     }
 
+    private val savingsGoals: Flow<List<SavingsGoal>> = dao.observeSavingsGoals().map { rows ->
+        val now = System.currentTimeMillis()
+        rows.map { it.toModel(now) }
+    }
+
     val summary: Flow<DashboardSummary> = combine(
         allTransactions,
         currentBudgetSummary,
         profile,
-    ) { transactionRows, budget, financialProfile ->
-        calculateSummary(transactionRows, budget, financialProfile)
+        savingsGoals,
+    ) { transactionRows, budget, financialProfile, goals ->
+        calculateSummary(transactionRows, budget, financialProfile, goals)
     }
 
     init {
@@ -240,6 +251,46 @@ class FinanceRepository(
             val category = requireNotNull(dao.findCategory(name, TransactionType.EXPENSE.name))
             saveBudget(currentMonthStart, category.id, amount)
         }
+        if (dao.savingsGoalCount() == 0) {
+            val emergencyGoalId = dao.insertSavingsGoal(
+                SavingsGoalEntity(
+                    name = "Dana Darurat 6 Bulan",
+                    type = SavingsGoalType.EMERGENCY_FUND.name,
+                    targetAmount = 24_000_000,
+                    targetDate = shiftMonth(currentMonthStart, 12),
+                    monthlyContributionTarget = 1_500_000,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
+            dao.insertSavingsContribution(
+                SavingsContributionEntity(
+                    goalId = emergencyGoalId,
+                    amount = 6_000_000,
+                    contributedAt = now - DAY_MILLIS,
+                    note = "Saldo awal dana darurat",
+                ),
+            )
+            val financialGoalId = dao.insertSavingsGoal(
+                SavingsGoalEntity(
+                    name = "Liburan Keluarga",
+                    type = SavingsGoalType.FINANCIAL_GOAL.name,
+                    targetAmount = 10_000_000,
+                    targetDate = shiftMonth(currentMonthStart, 8),
+                    monthlyContributionTarget = 1_000_000,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
+            dao.insertSavingsContribution(
+                SavingsContributionEntity(
+                    goalId = financialGoalId,
+                    amount = 2_000_000,
+                    contributedAt = now,
+                    note = "Setoran pertama",
+                ),
+            )
+        }
     }
 
     suspend fun clearAllTransactions() {
@@ -275,6 +326,7 @@ class FinanceRepository(
         transactions: List<FinanceTransaction>,
         budget: BudgetSummary,
         profile: FinancialProfile,
+        goals: List<SavingsGoal>,
     ): DashboardSummary {
         val nextMonth = nextMonthStart(currentMonthStart)
         val currentMonth = transactions.filter {
@@ -283,6 +335,7 @@ class FinanceRepository(
         val income = currentMonth.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
         val expense = currentMonth.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
         val savingsRate = FinancialCalculator.savingsRate(income, expense)
+        val savingsOverview = SavingsCalculator.overview(goals, expense)
 
         return DashboardSummary(
             income = income,
@@ -294,6 +347,7 @@ class FinanceRepository(
                 FinancialHealthInput(
                     income = income,
                     expense = expense,
+                    emergencyFundMonths = savingsOverview.emergencyFundMonths,
                     budgetAdherence = budget.adherencePercent,
                 ),
             ),
@@ -304,6 +358,8 @@ class FinanceRepository(
                 income.toDouble() / profile.monthlyIncomeTarget * 100.0
             },
             savingsTargetGap = profile.savingsTargetPercent - savingsRate,
+            totalSavings = savingsOverview.totalSaved,
+            emergencyFundMonths = savingsOverview.emergencyFundMonths,
         )
     }
 

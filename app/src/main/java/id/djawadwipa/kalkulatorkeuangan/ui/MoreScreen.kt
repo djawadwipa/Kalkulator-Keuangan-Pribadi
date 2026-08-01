@@ -73,6 +73,14 @@ internal fun MoreScreen(
             }
         }
         item {
+            SectionTitle("Tabungan, dana darurat, dan target")
+            SavingsPlannerSection(
+                totalSavings = state.summary.totalSavings,
+                emergencyFundMonths = state.summary.emergencyFundMonths,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        item {
             SectionTitle("Rekening")
             OutlinedButton(
                 onClick = { showAccountDialog = true },
@@ -121,7 +129,7 @@ internal fun MoreScreen(
                 Text("Hapus seluruh transaksi lokal")
             }
         }
-        item { Text("Versi 0.3.0 • id.djawadwipa.kalkulatorkeuangan") }
+        item { Text("Versi 0.4.0 • id.djawadwipa.kalkulatorkeuangan") }
     }
 
     if (showProfileDialog) {
@@ -157,7 +165,7 @@ internal fun MoreScreen(
             onDismissRequest = { confirmClear = false },
             title = { Text("Hapus semua transaksi?") },
             text = {
-                Text("Profil, rekening, kategori, dan budget tetap tersimpan. Tindakan ini tidak dapat dibatalkan.")
+                Text("Profil, rekening, kategori, budget, target, dan setoran tetap tersimpan. Tindakan ini tidak dapat dibatalkan.")
             },
             confirmButton = {
                 Button(
