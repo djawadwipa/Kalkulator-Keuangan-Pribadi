@@ -1,6 +1,7 @@
 package id.djawadwipa.kalkulatorkeuangan.domain
 
 import id.djawadwipa.kalkulatorkeuangan.model.FinancialHealthInput
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 object FinancialCalculator {
@@ -14,6 +15,35 @@ object FinancialCalculator {
         if (income <= 0L) return if (expense == 0L) 0.0 else 100.0
         return (expense.toDouble() / income.toDouble() * 100.0)
             .coerceAtLeast(0.0)
+    }
+
+    fun debtServiceRatio(income: Long, minimumPayments: Long): Double {
+        require(minimumPayments >= 0L) { "Pembayaran minimum tidak boleh negatif" }
+        if (income <= 0L) return if (minimumPayments == 0L) 0.0 else 100.0
+        return (minimumPayments.toDouble() / income.toDouble() * 100.0)
+            .coerceIn(0.0, 999.0)
+    }
+
+    fun investmentAllocation(investmentValue: Long, totalAssets: Long): Double {
+        require(investmentValue >= 0L) { "Nilai investasi tidak boleh negatif" }
+        require(totalAssets >= 0L) { "Total aset tidak boleh negatif" }
+        if (totalAssets == 0L) return 0.0
+        return (investmentValue.toDouble() / totalAssets.toDouble() * 100.0)
+            .coerceIn(0.0, 100.0)
+    }
+
+    fun netWorthGrowth(currentNetWorth: Long, previousNetWorth: Long?): Double {
+        if (previousNetWorth == null) return 0.0
+        if (previousNetWorth == 0L) {
+            return when {
+                currentNetWorth > 0L -> 100.0
+                currentNetWorth < 0L -> -100.0
+                else -> 0.0
+            }
+        }
+        return ((currentNetWorth - previousNetWorth).toDouble() /
+            abs(previousNetWorth.toDouble()) * 100.0)
+            .coerceIn(-999.0, 999.0)
     }
 
     fun healthScore(input: FinancialHealthInput): Int {
