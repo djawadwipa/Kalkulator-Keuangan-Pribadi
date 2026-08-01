@@ -60,7 +60,26 @@ cleanup() {
 }
 trap cleanup EXIT
 
-"$ADB" wait-for-device
+DEVICE_READY=false
+for _ in $(seq 1 90); do
+  if ! kill -0 "$EMULATOR_PID" >/dev/null 2>&1; then
+    echo "Proses Android emulator berhenti sebelum terhubung ke adb." >&2
+    tail -n 200 emulator.log >&2 || true
+    exit 1
+  fi
+  if [[ "$("$ADB" get-state 2>/dev/null || true)" == "device" ]]; then
+    DEVICE_READY=true
+    break
+  fi
+  sleep 2
+done
+
+if [[ "$DEVICE_READY" != "true" ]]; then
+  echo "Android emulator tidak terhubung ke adb dalam tiga menit." >&2
+  tail -n 200 emulator.log >&2 || true
+  exit 1
+fi
+
 BOOTED=false
 for _ in $(seq 1 180); do
   if [[ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)" == "1" ]]; then
