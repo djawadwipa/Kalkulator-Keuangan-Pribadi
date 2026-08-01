@@ -12,9 +12,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -30,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -242,6 +248,8 @@ private fun BackupPasswordDialog(
 ) {
     var password by rememberSaveable { mutableStateOf("") }
     var confirmation by rememberSaveable { mutableStateOf("") }
+    var showPassword by rememberSaveable { mutableStateOf(false) }
+    var showConfirmation by rememberSaveable { mutableStateOf(false) }
     val valid = password.length >= EncryptedBackupCodec.MIN_PASSWORD_LENGTH &&
         (mode == PasswordMode.IMPORT || password == confirmation)
 
@@ -264,7 +272,27 @@ private fun BackupPasswordDialog(
                     onValueChange = { password = it.take(128) },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("Password") },
-                    visualTransformation = PasswordVisualTransformation(),
+                    visualTransformation = if (showPassword) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(
+                                imageVector = if (showPassword) {
+                                    Icons.Filled.VisibilityOff
+                                } else {
+                                    Icons.Filled.Visibility
+                                },
+                                contentDescription = if (showPassword) {
+                                    "Sembunyikan password"
+                                } else {
+                                    "Tampilkan password"
+                                },
+                            )
+                        }
+                    },
                     singleLine = true,
                 )
                 if (mode == PasswordMode.EXPORT) {
@@ -273,7 +301,31 @@ private fun BackupPasswordDialog(
                         onValueChange = { confirmation = it.take(128) },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text("Ulangi password") },
-                        visualTransformation = PasswordVisualTransformation(),
+                        visualTransformation = if (showConfirmation) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = {
+                                    showConfirmation = !showConfirmation
+                                },
+                            ) {
+                                Icon(
+                                    imageVector = if (showConfirmation) {
+                                        Icons.Filled.VisibilityOff
+                                    } else {
+                                        Icons.Filled.Visibility
+                                    },
+                                    contentDescription = if (showConfirmation) {
+                                        "Sembunyikan ulangi password"
+                                    } else {
+                                        "Tampilkan ulangi password"
+                                    },
+                                )
+                            }
+                        },
                         singleLine = true,
                         supportingText = {
                             if (confirmation.isNotEmpty() && confirmation != password) {

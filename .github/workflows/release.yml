@@ -90,8 +90,15 @@ jobs:
           test "$("$APKANALYZER" manifest debuggable "$APK")" = "false"
           PERMISSIONS="$("$APKANALYZER" manifest permissions "$APK")"
           printf 'APK permissions:\n%s\n' "${PERMISSIONS:-<none>}"
-          if printf '%s\n' "$PERMISSIONS" | grep -Fq 'android.permission.'; then
-            echo "Unexpected Android platform permission found in release APK" >&2
+          PLATFORM_PERMISSIONS="$(printf '%s\n' "$PERMISSIONS" | grep '^android\.permission\.' || true)"
+          UNEXPECTED_PERMISSIONS="$(
+            printf '%s\n' "$PLATFORM_PERMISSIONS" |
+              grep -Fvx                 -e 'android.permission.USE_BIOMETRIC'                 -e 'android.permission.USE_FINGERPRINT' ||
+              true
+          )"
+          if test -n "$UNEXPECTED_PERMISSIONS"; then
+            echo "Unexpected Android platform permission found in release APK:" >&2
+            printf '%s\n' "$UNEXPECTED_PERMISSIONS" >&2
             exit 1
           fi
           "$APKSIGNER" verify --verbose --print-certs "$APK"

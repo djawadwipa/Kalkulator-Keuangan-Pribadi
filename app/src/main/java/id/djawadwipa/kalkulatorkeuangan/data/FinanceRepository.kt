@@ -202,11 +202,29 @@ class FinanceRepository(
         dao.insertAccount(AccountEntity(name = normalizedName, type = type.name))
     }
 
+    suspend fun updateAccount(id: Long, name: String, type: AccountType) {
+        require(id > 0L) { "ID rekening tidak valid" }
+        val normalizedName = name.trim()
+        require(normalizedName.isNotEmpty()) { "Nama rekening tidak boleh kosong" }
+        require(normalizedName.length <= 40) { "Nama rekening maksimal 40 karakter" }
+        val current = requireNotNull(dao.findAccountById(id)) { "Rekening tidak ditemukan" }
+        dao.updateAccount(current.copy(name = normalizedName, type = type.name))
+    }
+
     suspend fun addCategory(name: String, type: TransactionType) {
         val normalizedName = name.trim()
         require(normalizedName.isNotEmpty()) { "Nama kategori tidak boleh kosong" }
         require(normalizedName.length <= 40) { "Nama kategori maksimal 40 karakter" }
         dao.insertCategory(CategoryEntity(name = normalizedName, type = type.name))
+    }
+
+    suspend fun updateCategory(id: Long, name: String, type: TransactionType) {
+        require(id > 0L) { "ID kategori tidak valid" }
+        val normalizedName = name.trim()
+        require(normalizedName.isNotEmpty()) { "Nama kategori tidak boleh kosong" }
+        require(normalizedName.length <= 40) { "Nama kategori maksimal 40 karakter" }
+        val current = requireNotNull(dao.findCategoryById(id)) { "Kategori tidak ditemukan" }
+        dao.updateCategory(current.copy(name = normalizedName, type = type.name))
     }
 
     suspend fun addDemoData() {

@@ -53,6 +53,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import id.djawadwipa.kalkulatorkeuangan.data.AppThemeMode
 import id.djawadwipa.kalkulatorkeuangan.model.DashboardSummary
 import id.djawadwipa.kalkulatorkeuangan.model.FinanceAccount
 import id.djawadwipa.kalkulatorkeuangan.model.FinanceCategory
@@ -78,7 +79,18 @@ private enum class AppTab(val label: String, val symbol: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FinanceApp(viewModel: MainViewModel) {
+fun FinanceApp(
+    viewModel: MainViewModel,
+    themeMode: AppThemeMode,
+    onThemeModeChange: (AppThemeMode) -> Unit,
+    hasPin: Boolean,
+    biometricEnabled: Boolean,
+    biometricAvailable: Boolean,
+    onSetPin: (String) -> Unit,
+    onClearPin: () -> Unit,
+    onVerifyPin: (String) -> Boolean,
+    onBiometricEnabledChange: (Boolean) -> Unit,
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -166,9 +178,20 @@ fun FinanceApp(viewModel: MainViewModel) {
 
             AppTab.MORE -> MoreScreen(
                 state = state,
+                themeMode = themeMode,
+                onThemeModeChange = onThemeModeChange,
+                hasPin = hasPin,
+                biometricEnabled = biometricEnabled,
+                biometricAvailable = biometricAvailable,
+                onSetPin = onSetPin,
+                onClearPin = onClearPin,
+                onVerifyPin = onVerifyPin,
+                onBiometricEnabledChange = onBiometricEnabledChange,
                 onSaveProfile = viewModel::saveProfile,
                 onAddAccount = viewModel::addAccount,
+                onUpdateAccount = viewModel::updateAccount,
                 onAddCategory = viewModel::addCategory,
+                onUpdateCategory = viewModel::updateCategory,
                 onDemo = viewModel::addDemoData,
                 onClear = viewModel::clearAllData,
                 modifier = Modifier.padding(padding),
@@ -576,8 +599,19 @@ private fun TransactionContent(transaction: FinanceTransaction, modifier: Modifi
 }
 
 @Composable
-internal fun MasterDataRow(title: String, subtitle: String) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
+internal fun MasterDataRow(
+    title: String,
+    subtitle: String,
+    onClick: (() -> Unit)? = null,
+) {
+    val cardModifier = if (onClick == null) {
+        Modifier.fillMaxWidth()
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    }
+    Card(cardModifier, shape = RoundedCornerShape(14.dp)) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Text(title, fontWeight = FontWeight.SemiBold)
             Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant)

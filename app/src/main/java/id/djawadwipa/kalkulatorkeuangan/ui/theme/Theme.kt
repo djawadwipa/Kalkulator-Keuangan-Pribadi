@@ -6,6 +6,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import id.djawadwipa.kalkulatorkeuangan.data.AppThemeMode
 
 val Navy = Color(0xFF0F172A)
 val NavyDark = Color(0xFF07111F)
@@ -45,11 +46,17 @@ private val DarkScheme = darkColorScheme(
 
 @Composable
 fun KalkulatorKeuanganTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     content: @Composable () -> Unit,
 ) {
+    val useDarkTheme = when (themeMode) {
+        AppThemeMode.SYSTEM -> isSystemInDarkTheme()
+        AppThemeMode.LIGHT -> false
+        AppThemeMode.DARK -> true
+    }
+
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkScheme else LightScheme,
+        colorScheme = if (useDarkTheme) DarkScheme else LightScheme,
         content = content,
     )
 }
