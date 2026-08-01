@@ -14,8 +14,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TransactionEntity::class,
         FinancialProfileEntity::class,
         BudgetEntity::class,
+        SavingsGoalEntity::class,
+        SavingsContributionEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class FinanceDatabase : RoomDatabase() {
@@ -147,6 +149,48 @@ abstract class FinanceDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `savings_goals` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `target_amount` INTEGER NOT NULL,
+                        `target_date` INTEGER,
+                        `monthly_contribution_target` INTEGER NOT NULL,
+                        `is_archived` INTEGER NOT NULL,
+                        `created_at` INTEGER NOT NULL,
+                        `updated_at` INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_savings_goals_type` ON `savings_goals` (`type`)")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_savings_goals_is_archived` ON `savings_goals` (`is_archived`)",
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `savings_contributions` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `goal_id` INTEGER NOT NULL,
+                        `amount` INTEGER NOT NULL,
+                        `contributed_at` INTEGER NOT NULL,
+                        `note` TEXT NOT NULL,
+                        FOREIGN KEY(`goal_id`) REFERENCES `savings_goals`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_savings_contributions_goal_id` ON `savings_contributions` (`goal_id`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_savings_contributions_contributed_at` ON `savings_contributions` (`contributed_at`)",
+                )
+            }
+        }
+
         @Volatile
         private var instance: FinanceDatabase? = null
 
@@ -156,7 +200,7 @@ abstract class FinanceDatabase : RoomDatabase() {
                 FinanceDatabase::class.java,
                 DATABASE_NAME,
             )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
                 .also { instance = it }
         }
