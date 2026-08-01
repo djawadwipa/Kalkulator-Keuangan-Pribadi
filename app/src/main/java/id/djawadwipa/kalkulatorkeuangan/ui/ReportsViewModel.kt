@@ -77,7 +77,7 @@ class ReportsViewModel(
 
     class Factory(context: Context) : ViewModelProvider.Factory {
         private val repository = ReportsRepository(
-            FinanceDatabase.getInstance(context.applicationContext).financeDao(),
+            FinanceDatabase.getInstance(context.applicationContext),
         )
 
         @Suppress("UNCHECKED_CAST")
