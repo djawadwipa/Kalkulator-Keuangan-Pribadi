@@ -90,10 +90,13 @@ jobs:
           test "$("$APKANALYZER" manifest debuggable "$APK")" = "false"
           PERMISSIONS="$("$APKANALYZER" manifest permissions "$APK")"
           printf 'APK permissions:\n%s\n' "${PERMISSIONS:-<none>}"
-          PLATFORM_PERMISSIONS="$(printf '%s\n' "$PERMISSIONS" | grep '^android\.permission\.' || true)"
+          PLATFORM_PERMISSIONS="$(
+            printf '%s\n' "$PERMISSIONS" |
+              sed -n 's/^\(android\.permission\.[[:alnum:]_.]*\).*/\1/p'
+          )"
           UNEXPECTED_PERMISSIONS="$(
             printf '%s\n' "$PLATFORM_PERMISSIONS" |
-              grep -Fvx                 -e 'android.permission.USE_BIOMETRIC'                 -e 'android.permission.USE_FINGERPRINT' ||
+              grep -Ev "^android\.permission\.(USE_BIOMETRIC|USE_FINGERPRINT)([^[:alnum:]_.].*)?$" ||
               true
           )"
           if test -n "$UNEXPECTED_PERMISSIONS"; then
