@@ -20,13 +20,19 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import id.djawadwipa.kalkulatorkeuangan.BuildConfig
+import id.djawadwipa.kalkulatorkeuangan.data.AppThemeMode
 import id.djawadwipa.kalkulatorkeuangan.model.AccountType
+import id.djawadwipa.kalkulatorkeuangan.model.FinanceAccount
+import id.djawadwipa.kalkulatorkeuangan.model.FinanceCategory
 import id.djawadwipa.kalkulatorkeuangan.model.FinancialProfile
 import id.djawadwipa.kalkulatorkeuangan.model.FinancialProfileDraft
 import id.djawadwipa.kalkulatorkeuangan.model.TransactionType
@@ -34,9 +40,20 @@ import id.djawadwipa.kalkulatorkeuangan.model.TransactionType
 @Composable
 internal fun MoreScreen(
     state: FinanceUiState,
+    themeMode: AppThemeMode,
+    onThemeModeChange: (AppThemeMode) -> Unit,
+    hasPin: Boolean,
+    biometricEnabled: Boolean,
+    biometricAvailable: Boolean,
+    onSetPin: (String) -> Unit,
+    onClearPin: () -> Unit,
+    onVerifyPin: (String) -> Boolean,
+    onBiometricEnabledChange: (Boolean) -> Unit,
     onSaveProfile: (FinancialProfileDraft) -> Unit,
     onAddAccount: (String, AccountType) -> Unit,
+    onUpdateAccount: (Long, String, AccountType) -> Unit,
     onAddCategory: (String, TransactionType) -> Unit,
+    onUpdateCategory: (Long, String, TransactionType) -> Unit,
     onDemo: () -> Unit,
     onClear: () -> Unit,
     modifier: Modifier,
@@ -45,6 +62,8 @@ internal fun MoreScreen(
     var showProfileDialog by rememberSaveable { mutableStateOf(false) }
     var showAccountDialog by rememberSaveable { mutableStateOf(false) }
     var showCategoryDialog by rememberSaveable { mutableStateOf(false) }
+    var editingAccount by remember { mutableStateOf<FinanceAccount?>(null) }
+    var editingCategory by remember { mutableStateOf<FinanceCategory?>(null) }
     var showDebtPlanner by rememberSaveable { mutableStateOf(false) }
     var showInvestmentPlanner by rememberSaveable { mutableStateOf(false) }
     var showNetWorthPlanner by rememberSaveable { mutableStateOf(false) }
@@ -82,12 +101,42 @@ internal fun MoreScreen(
         item {
             Text("Lainnya", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text("Offline-first • tanpa iklan • tanpa analytics • tanpa permission sensitif")
+            SectionTitle("Tampilan")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = themeMode == AppThemeMode.SYSTEM,
+                    onClick = { onThemeModeChange(AppThemeMode.SYSTEM) },
+                    label = { Text("Ikuti sistem") },
+                )
+                FilterChip(
+                    selected = themeMode == AppThemeMode.LIGHT,
+                    onClick = { onThemeModeChange(AppThemeMode.LIGHT) },
+                    label = { Text("Terang") },
+                )
+                FilterChip(
+                    selected = themeMode == AppThemeMode.DARK,
+                    onClick = { onThemeModeChange(AppThemeMode.DARK) },
+                    label = { Text("Gelap") },
+                )
+            }
+        }
+        item {
+            SecuritySettingsSection(
+                hasPin = hasPin,
+                biometricEnabled = biometricEnabled,
+                biometricAvailable = biometricAvailable,
+                onSetPin = onSetPin,
+                onClearPin = onClearPin,
+                onVerifyPin = onVerifyPin,
+                onBiometricEnabledChange = onBiometricEnabledChange,
+            )
         }
         item {
             SectionTitle("Profil keuangan")
             MasterDataRow(
                 title = state.profile.displayName.ifBlank { "Profil belum dilengkapi" },
                 subtitle = "Target pemasukan ${rupiah(state.profile.monthlyIncomeTarget)} • tabungan ${state.profile.savingsTargetPercent}%",
+                onClick = { showProfileDialog = true },
             )
             OutlinedButton(onClick = { showProfileDialog = true }, modifier = Modifier.fillMaxWidth()) {
                 Text("Ubah profil dan target")
@@ -106,6 +155,7 @@ internal fun MoreScreen(
             MasterDataRow(
                 title = "Debt payoff planner",
                 subtitle = "Kelola pembayaran dan bandingkan strategi Snowball dengan Avalanche.",
+                onClick = { showDebtPlanner = true },
             )
             OutlinedButton(onClick = { showDebtPlanner = true }, modifier = Modifier.fillMaxWidth()) {
                 Text("Buka cicilan, utang, dan strategi pelunasan")
@@ -116,6 +166,7 @@ internal fun MoreScreen(
             MasterDataRow(
                 title = "Portfolio tracker",
                 subtitle = "Catat posisi, alokasi, keuntungan/rugi, dan proyeksi investasi secara lokal.",
+                onClick = { showInvestmentPlanner = true },
             )
             OutlinedButton(onClick = { showInvestmentPlanner = true }, modifier = Modifier.fillMaxWidth()) {
                 Text("Buka investasi, portofolio, dan simulasi")
@@ -126,6 +177,7 @@ internal fun MoreScreen(
             MasterDataRow(
                 title = "Net Worth tracker",
                 subtitle = "Gabungkan aset manual dengan tabungan, investasi, dan sisa utang secara otomatis.",
+                onClick = { showNetWorthPlanner = true },
             )
             OutlinedButton(onClick = { showNetWorthPlanner = true }, modifier = Modifier.fillMaxWidth()) {
                 Text("Buka aset, liabilitas, dan Net Worth")
@@ -136,6 +188,7 @@ internal fun MoreScreen(
             MasterDataRow(
                 title = "Proyeksi kebebasan finansial",
                 subtitle = "Hitung target modal, pendapatan pasif, milestone, dan estimasi tanggal tercapai.",
+                onClick = { showFreedomPlanner = true },
             )
             OutlinedButton(onClick = { showFreedomPlanner = true }, modifier = Modifier.fillMaxWidth()) {
                 Text("Buka proyeksi Financial Freedom")
@@ -146,6 +199,7 @@ internal fun MoreScreen(
             MasterDataRow(
                 title = "Portabilitas data lokal",
                 subtitle = "Ekspor database atau buat backup AES-256-GCM dengan password melalui pemilih dokumen Android.",
+                onClick = { showDataBackup = true },
             )
             OutlinedButton(onClick = { showDataBackup = true }, modifier = Modifier.fillMaxWidth()) {
                 Text("Kelola ekspor, impor, dan backup")
@@ -158,7 +212,11 @@ internal fun MoreScreen(
             }
         }
         items(state.accounts, key = { "account-${it.id}" }) { account ->
-            MasterDataRow(account.name, account.type.label)
+            MasterDataRow(
+                title = account.name,
+                subtitle = account.type.label,
+                onClick = { editingAccount = account },
+            )
         }
         item {
             SectionTitle("Kategori")
@@ -167,7 +225,11 @@ internal fun MoreScreen(
             }
         }
         items(state.categories, key = { "category-${it.id}" }) { category ->
-            MasterDataRow(category.name, category.type.label)
+            MasterDataRow(
+                title = category.name,
+                subtitle = category.type.label,
+                onClick = { editingCategory = category },
+            )
         }
         item {
             SectionTitle("Data lokal")
@@ -188,7 +250,15 @@ internal fun MoreScreen(
                 Text("Hapus seluruh transaksi lokal")
             }
         }
-        item { Text("Versi 0.9.0 • id.djawadwipa.kalkulatorkeuangan") }
+        item {
+            Text(
+                text = "Versi ${BuildConfig.VERSION_NAME} • Djawa Dwipa • fanyagung@gmail.com",
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 
     if (showProfileDialog) {
@@ -210,12 +280,32 @@ internal fun MoreScreen(
             },
         )
     }
+    editingAccount?.let { account ->
+        AddAccountDialog(
+            account = account,
+            onDismiss = { editingAccount = null },
+            onSave = { name, type ->
+                onUpdateAccount(account.id, name, type)
+                editingAccount = null
+            },
+        )
+    }
     if (showCategoryDialog) {
         AddCategoryDialog(
             onDismiss = { showCategoryDialog = false },
             onSave = { name, type ->
                 onAddCategory(name, type)
                 showCategoryDialog = false
+            },
+        )
+    }
+    editingCategory?.let { category ->
+        AddCategoryDialog(
+            category = category,
+            onDismiss = { editingCategory = null },
+            onSave = { name, type ->
+                onUpdateCategory(category.id, name, type)
+                editingCategory = null
             },
         )
     }
@@ -303,14 +393,15 @@ private fun ProfileDialog(
 
 @Composable
 private fun AddAccountDialog(
+    account: FinanceAccount? = null,
     onDismiss: () -> Unit,
     onSave: (String, AccountType) -> Unit,
 ) {
-    var name by rememberSaveable { mutableStateOf("") }
-    var type by rememberSaveable { mutableStateOf(AccountType.CASH) }
+    var name by rememberSaveable(account?.id) { mutableStateOf(account?.name.orEmpty()) }
+    var type by rememberSaveable(account?.id) { mutableStateOf(account?.type ?: AccountType.CASH) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Tambah rekening") },
+        title = { Text(if (account == null) "Tambah rekening" else "Ubah rekening") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
@@ -342,14 +433,17 @@ private fun AddAccountDialog(
 
 @Composable
 private fun AddCategoryDialog(
+    category: FinanceCategory? = null,
     onDismiss: () -> Unit,
     onSave: (String, TransactionType) -> Unit,
 ) {
-    var name by rememberSaveable { mutableStateOf("") }
-    var type by rememberSaveable { mutableStateOf(TransactionType.EXPENSE) }
+    var name by rememberSaveable(category?.id) { mutableStateOf(category?.name.orEmpty()) }
+    var type by rememberSaveable(category?.id) {
+        mutableStateOf(category?.type ?: TransactionType.EXPENSE)
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Tambah kategori") },
+        title = { Text(if (category == null) "Tambah kategori" else "Ubah kategori") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(

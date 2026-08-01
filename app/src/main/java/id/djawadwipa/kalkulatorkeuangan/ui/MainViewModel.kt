@@ -126,9 +126,19 @@ class MainViewModel(
         repository.addAccount(name, type)
     }
 
+    fun updateAccount(id: Long, name: String, type: AccountType) =
+        runAction("Rekening berhasil diperbarui") {
+            repository.updateAccount(id, name, type)
+        }
+
     fun addCategory(name: String, type: TransactionType) = runAction("Kategori berhasil ditambahkan") {
         repository.addCategory(name, type)
     }
+
+    fun updateCategory(id: Long, name: String, type: TransactionType) =
+        runAction("Kategori berhasil diperbarui") {
+            repository.updateCategory(id, name, type)
+        }
 
     fun addDemoData() = runAction("Data contoh berhasil ditambahkan") {
         repository.addDemoData()

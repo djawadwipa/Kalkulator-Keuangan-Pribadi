@@ -176,6 +176,12 @@ interface FinanceDao {
     suspend fun insertCategories(categories: List<CategoryEntity>): List<Long>
 
     @Update
+    suspend fun updateAccount(account: AccountEntity)
+
+    @Update
+    suspend fun updateCategory(category: CategoryEntity)
+
+    @Update
     suspend fun updateTransaction(transaction: TransactionEntity)
 
     @Update
@@ -237,6 +243,9 @@ interface FinanceDao {
 
     @Query("SELECT * FROM categories WHERE name = :name AND type = :type LIMIT 1")
     suspend fun findCategory(name: String, type: String): CategoryEntity?
+
+    @Query("SELECT * FROM accounts WHERE id = :id LIMIT 1")
+    suspend fun findAccountById(id: Long): AccountEntity?
 
     @Query("SELECT * FROM categories WHERE id = :id LIMIT 1")
     suspend fun findCategoryById(id: Long): CategoryEntity?
