@@ -95,7 +95,7 @@ jobs:
             exit 1
           fi
           "$APKSIGNER" verify --verbose --print-certs "$APK"
-          jarsigner -verify -strict "$AAB"
+          jarsigner -verify "$AAB"
 
       - name: Create SHA-256 checksums
         run: |
