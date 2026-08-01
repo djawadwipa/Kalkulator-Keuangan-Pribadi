@@ -25,24 +25,14 @@ interface FinanceDao {
     @Transaction
     @Query(
         """
-        SELECT
-            t.id,
-            t.type,
-            t.amount,
-            t.account_id,
-            a.name AS account_name,
-            t.category_id,
-            c.name AS category_name,
-            t.description,
-            t.occurred_at
+        SELECT t.id, t.type, t.amount, t.account_id, a.name AS account_name,
+            t.category_id, c.name AS category_name, t.description, t.occurred_at
         FROM transactions t
         INNER JOIN accounts a ON a.id = t.account_id
         INNER JOIN categories c ON c.id = t.category_id
-        WHERE
-            (:query = '' OR
-                LOWER(c.name) LIKE '%' || LOWER(:query) || '%' OR
-                LOWER(a.name) LIKE '%' || LOWER(:query) || '%' OR
-                LOWER(t.description) LIKE '%' || LOWER(:query) || '%')
+        WHERE (:query = '' OR LOWER(c.name) LIKE '%' || LOWER(:query) || '%'
+            OR LOWER(a.name) LIKE '%' || LOWER(:query) || '%'
+            OR LOWER(t.description) LIKE '%' || LOWER(:query) || '%')
             AND (:type IS NULL OR t.type = :type)
         ORDER BY t.occurred_at DESC, t.id DESC
         """,
@@ -51,17 +41,11 @@ interface FinanceDao {
 
     @Query(
         """
-        SELECT
-            b.id,
-            b.month_start,
-            b.category_id,
-            c.name AS category_name,
-            b.limit_amount,
-            COALESCE(SUM(t.amount), 0) AS spent_amount
+        SELECT b.id, b.month_start, b.category_id, c.name AS category_name,
+            b.limit_amount, COALESCE(SUM(t.amount), 0) AS spent_amount
         FROM budgets b
         INNER JOIN categories c ON c.id = b.category_id
-        LEFT JOIN transactions t
-            ON t.category_id = b.category_id
+        LEFT JOIN transactions t ON t.category_id = b.category_id
             AND t.type = 'EXPENSE'
             AND t.occurred_at >= :monthStart
             AND t.occurred_at < :nextMonthStart
@@ -74,10 +58,7 @@ interface FinanceDao {
 
     @Query(
         """
-        SELECT
-            c.id AS category_id,
-            c.name AS category_name,
-            COALESCE(SUM(t.amount), 0) AS amount
+        SELECT c.id AS category_id, c.name AS category_name, COALESCE(SUM(t.amount), 0) AS amount
         FROM transactions t
         INNER JOIN categories c ON c.id = t.category_id
         WHERE t.type = 'EXPENSE'
@@ -92,55 +73,32 @@ interface FinanceDao {
 
     @Query(
         """
-        SELECT
-            g.id,
-            g.name,
-            g.type,
-            g.target_amount,
-            g.target_date,
-            g.monthly_contribution_target,
-            COALESCE(SUM(c.amount), 0) AS current_amount,
-            g.created_at,
-            g.updated_at
+        SELECT g.id, g.name, g.type, g.target_amount, g.target_date,
+            g.monthly_contribution_target, COALESCE(SUM(c.amount), 0) AS current_amount,
+            g.created_at, g.updated_at
         FROM savings_goals g
         LEFT JOIN savings_contributions c ON c.goal_id = g.id
         WHERE g.is_archived = 0
-        GROUP BY
-            g.id,
-            g.name,
-            g.type,
-            g.target_amount,
-            g.target_date,
-            g.monthly_contribution_target,
-            g.created_at,
-            g.updated_at
-        ORDER BY
-            CASE g.type
-                WHEN 'EMERGENCY_FUND' THEN 0
-                WHEN 'SAVINGS' THEN 1
-                ELSE 2
-            END,
-            g.updated_at DESC,
-            g.name COLLATE NOCASE
+        GROUP BY g.id, g.name, g.type, g.target_amount, g.target_date,
+            g.monthly_contribution_target, g.created_at, g.updated_at
+        ORDER BY CASE g.type WHEN 'EMERGENCY_FUND' THEN 0 WHEN 'SAVINGS' THEN 1 ELSE 2 END,
+            g.updated_at DESC, g.name COLLATE NOCASE
         """,
     )
     fun observeSavingsGoals(): Flow<List<SavingsGoalRecord>>
 
     @Query(
         """
-        SELECT
-            c.id,
-            c.goal_id,
-            g.name AS goal_name,
-            c.amount,
-            c.contributed_at,
-            c.note
+        SELECT c.id, c.goal_id, g.name AS goal_name, c.amount, c.contributed_at, c.note
         FROM savings_contributions c
         INNER JOIN savings_goals g ON g.id = c.goal_id
         ORDER BY c.contributed_at DESC, c.id DESC
         """,
     )
     fun observeSavingsContributions(): Flow<List<SavingsContributionRecord>>
+
+    @Query("SELECT * FROM monthly_reviews WHERE month_start = :monthStart LIMIT 1")
+    fun observeMonthlyReview(monthStart: Long): Flow<MonthlyReviewEntity?>
 
     @Query("SELECT * FROM monthly_report_snapshots ORDER BY month_start DESC")
     fun observeMonthlyReportSnapshots(): Flow<List<MonthlyReportSnapshotEntity>>
@@ -165,6 +123,9 @@ interface FinanceDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveProfile(profile: FinancialProfileEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveMonthlyReview(review: MonthlyReviewEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveMonthlyReportSnapshot(snapshot: MonthlyReportSnapshotEntity): Long
