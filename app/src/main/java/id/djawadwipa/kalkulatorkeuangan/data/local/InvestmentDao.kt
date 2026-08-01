@@ -37,6 +37,15 @@ interface InvestmentDao {
     @Query("SELECT * FROM investment_transactions WHERE id = :id LIMIT 1")
     suspend fun findTransactionById(id: Long): InvestmentTransactionEntity?
 
+    @Query(
+        """
+        SELECT * FROM investment_transactions
+        WHERE asset_id = :assetId
+        ORDER BY transacted_at ASC, id ASC
+        """,
+    )
+    suspend fun getTransactionsForAsset(assetId: Long): List<InvestmentTransactionEntity>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAsset(asset: InvestmentAssetEntity): Long
 
