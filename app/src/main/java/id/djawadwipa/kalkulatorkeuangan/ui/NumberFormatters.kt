@@ -3,7 +3,7 @@ package id.djawadwipa.kalkulatorkeuangan.ui
 import java.text.NumberFormat
 import java.util.Locale
 
-internal fun decimal(value: Double): String = NumberFormat.getNumberInstance(
+internal fun reportDecimal(value: Double): String = NumberFormat.getNumberInstance(
     Locale("id", "ID"),
 ).apply {
     maximumFractionDigits = 1
