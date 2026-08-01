@@ -16,8 +16,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         BudgetEntity::class,
         SavingsGoalEntity::class,
         SavingsContributionEntity::class,
+        MonthlyReviewEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class FinanceDatabase : RoomDatabase() {
@@ -191,6 +192,23 @@ abstract class FinanceDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `monthly_reviews` (
+                        `month_start` INTEGER NOT NULL,
+                        `score` INTEGER NOT NULL,
+                        `highlight` TEXT NOT NULL,
+                        `improvement` TEXT NOT NULL,
+                        `updated_at` INTEGER NOT NULL,
+                        PRIMARY KEY(`month_start`)
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
         @Volatile
         private var instance: FinanceDatabase? = null
 
@@ -200,7 +218,7 @@ abstract class FinanceDatabase : RoomDatabase() {
                 FinanceDatabase::class.java,
                 DATABASE_NAME,
             )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
                 .also { instance = it }
         }
