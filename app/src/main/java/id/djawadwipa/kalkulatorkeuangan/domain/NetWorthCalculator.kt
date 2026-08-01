@@ -48,6 +48,6 @@ object NetWorthCalculator {
     }
 
     private fun safeAdd(vararg values: Long): Long = values.fold(0L) { total, value ->
-        Math.addExact(total, value)
+        if (Long.MAX_VALUE - total < value) Long.MAX_VALUE else total + value
     }
 }
