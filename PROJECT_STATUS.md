@@ -8,7 +8,7 @@
 - Logo: **Cashflow Orbit**, navy `#0F172A` dan emerald `#10B981`
 - Platform: Android native Kotlin + Jetpack Compose
 
-## Sudah tersedia pada v0.3.0
+## Sudah tersedia pada v0.4.0
 
 - Dashboard arus kas dan progres target pemasukan bulan berjalan.
 - Profil keuangan lokal dengan target pemasukan dan target tabungan.
@@ -18,9 +18,13 @@
 - Budget bulanan per kategori beserta realisasi, sisa, pemakaian, dan status.
 - Navigasi bulan untuk budget dan analisis.
 - Analisis pengeluaran: total, rata-rata harian, kategori terbesar, dan komposisi kategori.
-- Saving rate, expense ratio, budget adherence, dan Financial Health Score.
+- Target tabungan, dana darurat, dan target keuangan.
+- CRUD target dan riwayat setoran dengan foreign key cascade.
+- Progres target, sisa nominal, tenggat, status, dan estimasi tanggal tercapai.
+- Cakupan dana darurat dalam bulan berdasarkan pengeluaran bulan berjalan.
+- Emergency-fund coverage terintegrasi ke Financial Health Score.
 - Room Database/SQLite privat dengan Flow.
-- Migrasi non-destruktif v1 → v2 → v3 dan schema Room terkunci.
+- Migrasi non-destruktif v1 → v2 → v3 → v4 dan schema Room terkunci.
 - Tema Material 3 navy–emerald dan adaptive launcher icon.
 - Privacy policy di dalam aplikasi dan repository.
 - Release non-debuggable, R8, shrink resources, dan private signing.
@@ -30,18 +34,16 @@
 
 ## Modul berikutnya
 
-1. Tabungan dan Dana Darurat
-2. Target Keuangan
-3. Cash Flow dan Laporan Bulanan lanjutan
-4. Cicilan dan Utang
-5. Debt Snowball
-6. Debt Avalanche
-7. Investasi
-8. Simulasi Investasi
-9. Aset dan Liabilitas
-10. Net Worth Tracker
-11. Financial Health Score lanjutan
-12. Proyeksi Financial Freedom
+1. Cash Flow dan Laporan Bulanan lanjutan
+2. Cicilan dan Utang
+3. Debt Snowball
+4. Debt Avalanche
+5. Investasi
+6. Simulasi Investasi
+7. Aset dan Liabilitas
+8. Net Worth Tracker
+9. Financial Health Score lanjutan
+10. Proyeksi Financial Freedom
 
 ## Batas verifikasi saat ini
 
