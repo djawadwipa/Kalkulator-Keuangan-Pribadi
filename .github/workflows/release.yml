@@ -88,8 +88,10 @@ jobs:
           test -f "$AAB"
           test "$("$APKANALYZER" manifest application-id "$APK")" = "id.djawadwipa.kalkulatorkeuangan"
           test "$("$APKANALYZER" manifest debuggable "$APK")" = "false"
-          if "$APKANALYZER" manifest print "$APK" | grep -q '<uses-permission'; then
-            echo "Unexpected Android permission found in release APK" >&2
+          PERMISSIONS="$("$APKANALYZER" manifest permissions "$APK")"
+          printf 'APK permissions:\n%s\n' "${PERMISSIONS:-<none>}"
+          if printf '%s\n' "$PERMISSIONS" | grep -Fq 'android.permission.'; then
+            echo "Unexpected Android platform permission found in release APK" >&2
             exit 1
           fi
           "$APKSIGNER" verify --verbose --print-certs "$APK"
