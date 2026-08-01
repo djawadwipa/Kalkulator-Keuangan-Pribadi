@@ -48,27 +48,30 @@ internal fun MoreScreen(
     var showDebtPlanner by rememberSaveable { mutableStateOf(false) }
     var showInvestmentPlanner by rememberSaveable { mutableStateOf(false) }
     var showNetWorthPlanner by rememberSaveable { mutableStateOf(false) }
+    var showFreedomPlanner by rememberSaveable { mutableStateOf(false) }
+    var showDataBackup by rememberSaveable { mutableStateOf(false) }
 
-    if (showDebtPlanner) {
-        DebtRouteScreen(
-            onBack = { showDebtPlanner = false },
-            modifier = modifier,
-        )
-        return
-    }
-    if (showInvestmentPlanner) {
-        InvestmentRouteScreen(
-            onBack = { showInvestmentPlanner = false },
-            modifier = modifier,
-        )
-        return
-    }
-    if (showNetWorthPlanner) {
-        NetWorthRouteScreen(
-            onBack = { showNetWorthPlanner = false },
-            modifier = modifier,
-        )
-        return
+    when {
+        showDebtPlanner -> {
+            DebtRouteScreen(onBack = { showDebtPlanner = false }, modifier = modifier)
+            return
+        }
+        showInvestmentPlanner -> {
+            InvestmentRouteScreen(onBack = { showInvestmentPlanner = false }, modifier = modifier)
+            return
+        }
+        showNetWorthPlanner -> {
+            NetWorthRouteScreen(onBack = { showNetWorthPlanner = false }, modifier = modifier)
+            return
+        }
+        showFreedomPlanner -> {
+            FinancialFreedomRouteScreen(onBack = { showFreedomPlanner = false }, modifier = modifier)
+            return
+        }
+        showDataBackup -> {
+            DataBackupRouteScreen(onBack = { showDataBackup = false }, modifier = modifier)
+            return
+        }
     }
 
     LazyColumn(
@@ -77,11 +80,7 @@ internal fun MoreScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text(
-                "Lainnya",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-            )
+            Text("Lainnya", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text("Offline-first • tanpa iklan • tanpa analytics • tanpa permission sensitif")
         }
         item {
@@ -90,10 +89,7 @@ internal fun MoreScreen(
                 title = state.profile.displayName.ifBlank { "Profil belum dilengkapi" },
                 subtitle = "Target pemasukan ${rupiah(state.profile.monthlyIncomeTarget)} • tabungan ${state.profile.savingsTargetPercent}%",
             )
-            OutlinedButton(
-                onClick = { showProfileDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            OutlinedButton(onClick = { showProfileDialog = true }, modifier = Modifier.fillMaxWidth()) {
                 Text("Ubah profil dan target")
             }
         }
@@ -111,10 +107,7 @@ internal fun MoreScreen(
                 title = "Debt payoff planner",
                 subtitle = "Kelola pembayaran dan bandingkan strategi Snowball dengan Avalanche.",
             )
-            OutlinedButton(
-                onClick = { showDebtPlanner = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            OutlinedButton(onClick = { showDebtPlanner = true }, modifier = Modifier.fillMaxWidth()) {
                 Text("Buka cicilan, utang, dan strategi pelunasan")
             }
         }
@@ -124,10 +117,7 @@ internal fun MoreScreen(
                 title = "Portfolio tracker",
                 subtitle = "Catat posisi, alokasi, keuntungan/rugi, dan proyeksi investasi secara lokal.",
             )
-            OutlinedButton(
-                onClick = { showInvestmentPlanner = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            OutlinedButton(onClick = { showInvestmentPlanner = true }, modifier = Modifier.fillMaxWidth()) {
                 Text("Buka investasi, portofolio, dan simulasi")
             }
         }
@@ -137,19 +127,33 @@ internal fun MoreScreen(
                 title = "Net Worth tracker",
                 subtitle = "Gabungkan aset manual dengan tabungan, investasi, dan sisa utang secara otomatis.",
             )
-            OutlinedButton(
-                onClick = { showNetWorthPlanner = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            OutlinedButton(onClick = { showNetWorthPlanner = true }, modifier = Modifier.fillMaxWidth()) {
                 Text("Buka aset, liabilitas, dan Net Worth")
             }
         }
         item {
+            SectionTitle("Financial Freedom")
+            MasterDataRow(
+                title = "Proyeksi kebebasan finansial",
+                subtitle = "Hitung target modal, pendapatan pasif, milestone, dan estimasi tanggal tercapai.",
+            )
+            OutlinedButton(onClick = { showFreedomPlanner = true }, modifier = Modifier.fillMaxWidth()) {
+                Text("Buka proyeksi Financial Freedom")
+            }
+        }
+        item {
+            SectionTitle("Ekspor, impor, dan backup")
+            MasterDataRow(
+                title = "Portabilitas data lokal",
+                subtitle = "Ekspor database atau buat backup AES-256-GCM dengan password melalui pemilih dokumen Android.",
+            )
+            OutlinedButton(onClick = { showDataBackup = true }, modifier = Modifier.fillMaxWidth()) {
+                Text("Kelola ekspor, impor, dan backup")
+            }
+        }
+        item {
             SectionTitle("Rekening")
-            OutlinedButton(
-                onClick = { showAccountDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            OutlinedButton(onClick = { showAccountDialog = true }, modifier = Modifier.fillMaxWidth()) {
                 Text("Tambah rekening")
             }
         }
@@ -158,10 +162,7 @@ internal fun MoreScreen(
         }
         item {
             SectionTitle("Kategori")
-            OutlinedButton(
-                onClick = { showCategoryDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            OutlinedButton(onClick = { showCategoryDialog = true }, modifier = Modifier.fillMaxWidth()) {
                 Text("Tambah kategori")
             }
         }
@@ -175,13 +176,7 @@ internal fun MoreScreen(
                 enabled = state.recentTransactions.isEmpty(),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(
-                    if (state.recentTransactions.isEmpty()) {
-                        "Isi data contoh"
-                    } else {
-                        "Data contoh hanya untuk database kosong"
-                    },
-                )
+                Text(if (state.recentTransactions.isEmpty()) "Isi data contoh" else "Data contoh hanya untuk database kosong")
             }
         }
         item {
@@ -193,7 +188,7 @@ internal fun MoreScreen(
                 Text("Hapus seluruh transaksi lokal")
             }
         }
-        item { Text("Versi 0.8.0 • id.djawadwipa.kalkulatorkeuangan") }
+        item { Text("Versi 0.9.0 • id.djawadwipa.kalkulatorkeuangan") }
     }
 
     if (showProfileDialog) {
@@ -229,23 +224,15 @@ internal fun MoreScreen(
             onDismissRequest = { confirmClear = false },
             title = { Text("Hapus semua transaksi?") },
             text = {
-                Text("Profil, rekening, kategori, budget, target, setoran, utang, investasi, item Net Worth, dan riwayat terkait tetap tersimpan. Tindakan ini tidak dapat dibatalkan.")
+                Text("Profil, rekening, kategori, budget, target, setoran, utang, investasi, item Net Worth, dan data Financial Freedom tetap tersimpan. Tindakan ini tidak dapat dibatalkan.")
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        onClear()
-                        confirmClear = false
-                    },
-                ) {
-                    Text("Hapus")
-                }
+                Button(onClick = {
+                    onClear()
+                    confirmClear = false
+                }) { Text("Hapus") }
             },
-            dismissButton = {
-                TextButton(onClick = { confirmClear = false }) {
-                    Text("Batal")
-                }
-            },
+            dismissButton = { TextButton(onClick = { confirmClear = false }) { Text("Batal") } },
         )
     }
 }
@@ -347,10 +334,7 @@ private fun AddAccountDialog(
             }
         },
         confirmButton = {
-            Button(
-                enabled = name.isNotBlank(),
-                onClick = { onSave(name.trim(), type) },
-            ) { Text("Simpan") }
+            Button(enabled = name.isNotBlank(), onClick = { onSave(name.trim(), type) }) { Text("Simpan") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Batal") } },
     )
@@ -387,10 +371,7 @@ private fun AddCategoryDialog(
             }
         },
         confirmButton = {
-            Button(
-                enabled = name.isNotBlank(),
-                onClick = { onSave(name.trim(), type) },
-            ) { Text("Simpan") }
+            Button(enabled = name.isNotBlank(), onClick = { onSave(name.trim(), type) }) { Text("Simpan") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Batal") } },
     )
