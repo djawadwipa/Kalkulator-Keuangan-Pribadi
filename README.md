@@ -16,41 +16,33 @@ Aplikasi Android native murni untuk pencatatan, perencanaan, perhitungan, dan an
 
 ## Status implementasi
 
-Versi `0.8.0` menyediakan fondasi transaksi, perencanaan, tabungan, laporan, utang, investasi, serta Net Worth yang dapat dibuild:
+Versi `0.9.0` menyediakan fondasi transaksi, perencanaan, tabungan, laporan, utang, investasi, Net Worth, Financial Freedom, dan portabilitas data:
 
 - Dashboard arus kas bulan berjalan dan progres target pemasukan.
-- Profil keuangan lokal: nama/panggilan, target pemasukan, dan target tabungan.
-- CRUD pemasukan/pengeluaran dengan tanggal, rekening, kategori, serta catatan.
-- Master rekening dan kategori dengan relasi foreign key.
-- Pencarian dan filter transaksi.
-- Budget bulanan per kategori pengeluaran beserta realisasi dan status.
-- Target tabungan, dana darurat, dan target keuangan dengan CRUD lengkap.
-- Riwayat setoran per target, progres, sisa nominal, tenggat, status, dan estimasi tanggal tercapai.
-- Laporan arus kas bulanan, perbandingan bulan sebelumnya, dan tren 12 bulan.
-- Rincian kategori pengeluaran, aktivitas per rekening, evaluasi pribadi, dan snapshot laporan lokal.
-- CRUD cicilan dan utang dengan riwayat pembayaran.
-- Simulasi **Debt Snowball** dan **Debt Avalanche** beserta estimasi bebas utang dan bunga.
-- CRUD aset investasi: deposito, obligasi/SBN, reksa dana, saham, emas, kripto, dan aset lain.
-- Transaksi beli, jual, dividen/hasil, dan biaya investasi.
-- Perhitungan unit, harga rata-rata, cost basis, nilai pasar, keuntungan/rugi, return, serta alokasi portofolio.
-- Harga pasar dan target alokasi diperbarui manual tanpa akses internet.
-- Simulasi investasi dengan modal awal, setoran bulanan, compounding, return tahunan, durasi, dan inflasi.
-- CRUD aset dan liabilitas manual yang belum tercatat pada modul lain.
-- Net Worth menggabungkan aset manual, tabungan, nilai pasar investasi, liabilitas manual, dan sisa utang.
-- Snapshot Net Worth bulanan, komposisi aset/liabilitas, rasio liabilitas terhadap aset, dan perbandingan historis.
-- Financial Health Score lanjutan menggunakan arus kas, expense ratio, saving rate, rasio pembayaran minimum utang, dana darurat, porsi investasi, pertumbuhan Net Worth, dan kepatuhan budget.
+- Profil keuangan lokal, CRUD transaksi, rekening, kategori, pencarian, dan filter.
+- Budget bulanan per kategori beserta realisasi, sisa, dan status.
+- Target tabungan, dana darurat, target keuangan, dan riwayat setoran.
+- Laporan arus kas, tren 12 bulan, evaluasi, dan snapshot lokal.
+- Pengelolaan cicilan/utang serta simulasi Debt Snowball dan Debt Avalanche.
+- Portofolio investasi, transaksi beli/jual/dividen/biaya, alokasi, return, dan simulasi pertumbuhan.
+- Aset dan liabilitas manual, Net Worth terpadu, snapshot historis, dan Financial Health Score lanjutan.
+- Proyeksi Financial Freedom dengan target modal, pendapatan pasif, milestone, dan estimasi tanggal tercapai.
+- Asumsi safe withdrawal rate, return, inflasi, setoran bulanan, dan pilihan penyertaan saldo tabungan.
+- Ekspor dan impor database melalui Storage Access Framework tanpa permission penyimpanan umum.
+- Backup lokal terenkripsi AES-256-GCM dengan PBKDF2, salt dan nonce acak, serta autentikasi file.
+- Validasi header SQLite, ukuran file, dan versi database sebelum impor.
 - Tema navy–emerald dan adaptive launcher icon **Cashflow Orbit**.
 - Kebijakan privasi di dalam aplikasi dan repository.
 - Room Database 2.8.4 dengan migrasi non-destruktif v1 → v2 → v3 → v4 → v5 → v6 → v7 → v8.
 - Unit test, kompilasi tes migrasi Android, lint, dependency review, debug/release CI, dan signed release pipeline.
 
-Modul berikut telah dipetakan untuk iterasi selanjutnya: proyeksi financial freedom, ekspor/impor, backup lokal terenkripsi, pengujian perangkat, serta persiapan distribusi.
+Tahap berikutnya berfokus pada pengujian instrumentasi di emulator/perangkat, signed production release, privacy policy URL publik, dan Google Play Internal/Closed Testing.
 
 Lihat [status proyek](PROJECT_STATUS.md) untuk batas implementasi saat ini.
 
 ## Build lokal
 
-Gunakan JDK 17 dan Android SDK 36. Jalankan debug/test terlebih dahulu agar schema Room baru dihasilkan sebelum build release:
+Gunakan JDK 17 dan Android SDK 36:
 
 ```bash
 ./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
@@ -59,11 +51,18 @@ Gunakan JDK 17 dan Android SDK 36. Jalankan debug/test terlebih dahulu agar sche
 
 Pada pemanggilan pertama, launcher `gradlew` memasang Gradle Wrapper 9.3.1 dari repository resmi melalui HTTPS. File JAR dan distribusi Gradle diverifikasi dengan SHA-256 resmi.
 
-APK debug tersedia di:
+APK debug tersedia di `app/build/outputs/apk/debug/app-debug.apk`.
 
-```text
-app/build/outputs/apk/debug/app-debug.apk
-```
+## Ekspor, impor, dan backup
+
+Menu **Lainnya → Ekspor, impor, dan backup** menyediakan:
+
+- `.kkpdb` untuk portabilitas database tanpa enkripsi. File ini dapat memuat data keuangan sensitif.
+- `.kkpbak` untuk backup terenkripsi AES-256-GCM dengan password minimal delapan karakter.
+- Pemulihan database dengan pemeriksaan format, ukuran, dan versi sebelum data aktif diganti.
+- Mulai ulang aplikasi setelah impor agar seluruh layar membuka database baru.
+
+Password backup tidak disimpan dan tidak dapat dipulihkan. Simpan password serta file backup di lokasi yang berbeda dan tepercaya.
 
 ## Private release signing
 
@@ -83,7 +82,7 @@ Tambahkan GitHub Actions Secrets:
 - `RELEASE_KEY_ALIAS`
 - `RELEASE_KEY_PASSWORD`
 
-Contoh membuat nilai Base64 satu baris:
+Contoh nilai Base64 satu baris:
 
 ```bash
 base64 -w 0 release-keystore.jks
@@ -93,15 +92,7 @@ Jangan pernah menaruh hasil Base64, password, alias privat, atau file keystore d
 
 ## Release
 
-Workflow release berjalan saat tag `v*` dibuat atau melalui `workflow_dispatch`. Pipeline menghasilkan:
-
-- `app-release.apk`
-- `app-release.aab`
-- `SHA256SUMS.txt`
-- laporan lint dan unit test
-- dependency report release
-
-Pipeline memverifikasi package ID, status non-debuggable, permission, signature APK/AAB, serta checksum Gradle Wrapper dan distribusi.
+Workflow release berjalan saat tag `v*` dibuat atau melalui `workflow_dispatch`. Pipeline menghasilkan APK, AAB, SHA-256, laporan lint/unit test, dan dependency report. Pipeline memverifikasi package ID, status non-debuggable, permission, signature, serta checksum Gradle Wrapper dan distribusi.
 
 ## Supply-chain dan dependency audit
 
@@ -109,16 +100,16 @@ Pipeline memverifikasi package ID, status non-debuggable, permission, signature 
 - Dependabot memeriksa Gradle dan GitHub Actions setiap minggu.
 - Dependency Review menolak kerentanan baru tingkat `moderate` atau lebih tinggi.
 - Lisensi GPL-3.0 dan AGPL-3.0 ditolak pada dependency review.
-- CI membuat dependency report dan menjalankan lint, unit test, debug build, instrumentation-test APK, serta release/R8 build.
+- CI menjalankan lint, unit test, debug build, instrumentation-test APK, release/R8 build, dan dependency report.
 - Repository tidak menyimpan keystore, password, token, atau API key.
 
 ## Batas perhitungan
 
-Simulasi pelunasan utang, investasi, nilai aset, dan Net Worth adalah alat perencanaan berdasarkan asumsi yang dimasukkan pengguna. Hasilnya bukan jaminan return, penilaian resmi aset, rekomendasi investasi, atau pengganti tagihan dan informasi resmi penyedia produk keuangan.
+Simulasi utang, investasi, nilai aset, Net Worth, dan Financial Freedom adalah alat perencanaan berdasarkan asumsi pengguna. Hasilnya bukan jaminan return, penilaian resmi aset, rekomendasi investasi, atau pengganti informasi resmi penyedia produk keuangan.
 
 ## Distribusi
 
-Gunakan Google Play Internal/Closed Testing atau situs unduhan HTTPS. Jangan mendistribusikan keystore, password, atau APK dari kanal HTTP.
+Gunakan Google Play Internal/Closed Testing atau situs unduhan HTTPS. Jangan mendistribusikan keystore, password, backup, atau APK dari kanal HTTP.
 
 ## Privacy
 
