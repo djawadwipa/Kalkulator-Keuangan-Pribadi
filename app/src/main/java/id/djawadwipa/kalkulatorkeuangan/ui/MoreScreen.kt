@@ -45,6 +45,15 @@ internal fun MoreScreen(
     var showProfileDialog by rememberSaveable { mutableStateOf(false) }
     var showAccountDialog by rememberSaveable { mutableStateOf(false) }
     var showCategoryDialog by rememberSaveable { mutableStateOf(false) }
+    var showDebtPlanner by rememberSaveable { mutableStateOf(false) }
+
+    if (showDebtPlanner) {
+        DebtRouteScreen(
+            onBack = { showDebtPlanner = false },
+            modifier = modifier,
+        )
+        return
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -79,6 +88,19 @@ internal fun MoreScreen(
                 emergencyFundMonths = state.summary.emergencyFundMonths,
                 modifier = Modifier.fillMaxWidth(),
             )
+        }
+        item {
+            SectionTitle("Cicilan dan utang")
+            MasterDataRow(
+                title = "Debt payoff planner",
+                subtitle = "Kelola pembayaran dan bandingkan strategi Snowball dengan Avalanche.",
+            )
+            OutlinedButton(
+                onClick = { showDebtPlanner = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Buka cicilan, utang, dan strategi pelunasan")
+            }
         }
         item {
             SectionTitle("Rekening")
@@ -129,7 +151,7 @@ internal fun MoreScreen(
                 Text("Hapus seluruh transaksi lokal")
             }
         }
-        item { Text("Versi 0.5.0 • id.djawadwipa.kalkulatorkeuangan") }
+        item { Text("Versi 0.6.0 • id.djawadwipa.kalkulatorkeuangan") }
     }
 
     if (showProfileDialog) {
@@ -165,7 +187,7 @@ internal fun MoreScreen(
             onDismissRequest = { confirmClear = false },
             title = { Text("Hapus semua transaksi?") },
             text = {
-                Text("Profil, rekening, kategori, budget, target, dan setoran tetap tersimpan. Tindakan ini tidak dapat dibatalkan.")
+                Text("Profil, rekening, kategori, budget, target, setoran, utang, dan pembayaran utang tetap tersimpan. Tindakan ini tidak dapat dibatalkan.")
             },
             confirmButton = {
                 Button(
