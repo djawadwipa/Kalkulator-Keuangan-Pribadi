@@ -27,7 +27,7 @@ class FinanceDatabaseMigrationTest {
     }
 
     @Test
-    fun migration1To3PreservesTransactionsAndCreatesPlanningTables() {
+    fun migration1To4PreservesTransactionsAndCreatesPlanningTables() {
         createVersionOneDatabase()
 
         val roomDatabase = Room.databaseBuilder(
@@ -35,7 +35,11 @@ class FinanceDatabaseMigrationTest {
             FinanceDatabase::class.java,
             TEST_DATABASE,
         )
-            .addMigrations(FinanceDatabase.MIGRATION_1_2, FinanceDatabase.MIGRATION_2_3)
+            .addMigrations(
+                FinanceDatabase.MIGRATION_1_2,
+                FinanceDatabase.MIGRATION_2_3,
+                FinanceDatabase.MIGRATION_3_4,
+            )
             .allowMainThreadQueries()
             .build()
 
@@ -59,29 +63,48 @@ class FinanceDatabaseMigrationTest {
             assertTrue(cursor.moveToFirst())
             assertEquals(20, cursor.getInt(0))
         }
+        roomDatabase.openHelper.readableDatabase.query(
+            "SELECT COUNT(*) FROM savings_goals",
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
+        }
         roomDatabase.close()
     }
 
     @Test
-    fun migration2To3CreatesBudgetWithCategoryRelation() {
-        createVersionTwoDatabase()
+    fun migration3To4CreatesSavingsRelationsAndCascadeDelete() {
+        createVersionThreeDatabase()
 
         val roomDatabase = Room.databaseBuilder(
             context,
             FinanceDatabase::class.java,
             TEST_DATABASE,
         )
-            .addMigrations(FinanceDatabase.MIGRATION_2_3)
+            .addMigrations(FinanceDatabase.MIGRATION_3_4)
             .allowMainThreadQueries()
             .build()
 
         val db = roomDatabase.openHelper.writableDatabase
         db.execSQL(
-            "INSERT INTO budgets(month_start, category_id, limit_amount, updated_at) VALUES (1704067200000, 1, 2000000, 1704067200000)",
+            """
+            INSERT INTO savings_goals(
+                id, name, type, target_amount, target_date,
+                monthly_contribution_target, is_archived, created_at, updated_at
+            ) VALUES (1, 'Dana Darurat', 'EMERGENCY_FUND', 12000000, NULL, 1000000, 0, 1, 1)
+            """.trimIndent(),
         )
-        db.query("SELECT limit_amount FROM budgets WHERE category_id = 1").use { cursor ->
+        db.execSQL(
+            "INSERT INTO savings_contributions(goal_id, amount, contributed_at, note) VALUES (1, 2000000, 2, 'Saldo awal')",
+        )
+        db.query("SELECT amount FROM savings_contributions WHERE goal_id = 1").use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals(2_000_000L, cursor.getLong(0))
+        }
+        db.execSQL("DELETE FROM savings_goals WHERE id = 1")
+        db.query("SELECT COUNT(*) FROM savings_contributions").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
         }
         roomDatabase.close()
     }
@@ -109,8 +132,8 @@ class FinanceDatabaseMigrationTest {
         }
     }
 
-    private fun createVersionTwoDatabase() {
-        createDatabase(2) { db ->
+    private fun createVersionThreeDatabase() {
+        createDatabase(3) { db ->
             db.execSQL(
                 """
                 CREATE TABLE accounts (
@@ -153,8 +176,32 @@ class FinanceDatabaseMigrationTest {
             db.execSQL("CREATE INDEX index_transactions_category_id ON transactions(category_id)")
             db.execSQL("CREATE INDEX index_transactions_occurred_at ON transactions(occurred_at)")
             db.execSQL("CREATE INDEX index_transactions_type ON transactions(type)")
-            db.execSQL("INSERT INTO accounts(id, name, type, opening_balance, is_archived) VALUES (1, 'Dompet Utama', 'CASH', 0, 0)")
-            db.execSQL("INSERT INTO categories(id, name, type, is_default) VALUES (1, 'Makanan', 'EXPENSE', 1)")
+            db.execSQL(
+                """
+                CREATE TABLE financial_profile (
+                    id INTEGER NOT NULL PRIMARY KEY,
+                    display_name TEXT NOT NULL,
+                    monthly_income_target INTEGER NOT NULL,
+                    savings_target_percent INTEGER NOT NULL,
+                    currency_code TEXT NOT NULL,
+                    updated_at INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE TABLE budgets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    month_start INTEGER NOT NULL,
+                    category_id INTEGER NOT NULL,
+                    limit_amount INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL,
+                    FOREIGN KEY(category_id) REFERENCES categories(id) ON UPDATE NO ACTION ON DELETE RESTRICT
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX index_budgets_category_id ON budgets(category_id)")
+            db.execSQL("CREATE UNIQUE INDEX index_budgets_month_start_category_id ON budgets(month_start, category_id)")
         }
     }
 
