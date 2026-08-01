@@ -193,3 +193,49 @@ data class FinancialHealthInput(
     val netWorthGrowth: Double = 0.0,
     val budgetAdherence: Double = 0.0,
 )
+
+data class MonthlyCashFlowPoint(
+    val monthStart: Long,
+    val income: Long,
+    val expense: Long,
+    val netCashFlow: Long,
+    val savingsRate: Double,
+    val transactionCount: Int,
+)
+
+data class MonthlyCashFlowReport(
+    val monthStart: Long = 0,
+    val income: Long = 0,
+    val expense: Long = 0,
+    val netCashFlow: Long = 0,
+    val savingsRate: Double = 0.0,
+    val expenseRatio: Double = 0.0,
+    val budgetAdherence: Double = 0.0,
+    val healthScore: Int = 0,
+    val incomeChangePercent: Double = 0.0,
+    val expenseChangePercent: Double = 0.0,
+    val netChangeAmount: Long = 0,
+    val topExpenseCategory: String = "Belum ada data",
+    val topExpenseAmount: Long = 0,
+    val transactionCount: Int = 0,
+)
+
+data class ReportsDashboard(
+    val report: MonthlyCashFlowReport = MonthlyCashFlowReport(),
+    val trend: List<MonthlyCashFlowPoint> = emptyList(),
+    val averageIncome: Long = 0,
+    val averageExpense: Long = 0,
+    val positiveCashFlowMonths: Int = 0,
+)
+
+data class MonthlyReportSnapshot(
+    val id: Long,
+    val monthStart: Long,
+    val income: Long,
+    val expense: Long,
+    val netCashFlow: Long,
+    val savingsRate: Double,
+    val budgetAdherence: Double,
+    val healthScore: Int,
+    val generatedAt: Long,
+)
