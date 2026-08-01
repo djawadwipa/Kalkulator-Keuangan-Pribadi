@@ -90,6 +90,58 @@ interface FinanceDao {
     )
     fun observeCategorySpending(monthStart: Long, nextMonthStart: Long): Flow<List<CategorySpendingRecord>>
 
+    @Query(
+        """
+        SELECT
+            g.id,
+            g.name,
+            g.type,
+            g.target_amount,
+            g.target_date,
+            g.monthly_contribution_target,
+            COALESCE(SUM(c.amount), 0) AS current_amount,
+            g.created_at,
+            g.updated_at
+        FROM savings_goals g
+        LEFT JOIN savings_contributions c ON c.goal_id = g.id
+        WHERE g.is_archived = 0
+        GROUP BY
+            g.id,
+            g.name,
+            g.type,
+            g.target_amount,
+            g.target_date,
+            g.monthly_contribution_target,
+            g.created_at,
+            g.updated_at
+        ORDER BY
+            CASE g.type
+                WHEN 'EMERGENCY_FUND' THEN 0
+                WHEN 'SAVINGS' THEN 1
+                ELSE 2
+            END,
+            g.updated_at DESC,
+            g.name COLLATE NOCASE
+        """,
+    )
+    fun observeSavingsGoals(): Flow<List<SavingsGoalRecord>>
+
+    @Query(
+        """
+        SELECT
+            c.id,
+            c.goal_id,
+            g.name AS goal_name,
+            c.amount,
+            c.contributed_at,
+            c.note
+        FROM savings_contributions c
+        INNER JOIN savings_goals g ON g.id = c.goal_id
+        ORDER BY c.contributed_at DESC, c.id DESC
+        """,
+    )
+    fun observeSavingsContributions(): Flow<List<SavingsContributionRecord>>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAccount(account: AccountEntity): Long
 
@@ -101,6 +153,12 @@ interface FinanceDao {
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertBudget(budget: BudgetEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertSavingsGoal(goal: SavingsGoalEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertSavingsContribution(contribution: SavingsContributionEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveProfile(profile: FinancialProfileEntity)
@@ -117,11 +175,23 @@ interface FinanceDao {
     @Update
     suspend fun updateBudget(budget: BudgetEntity)
 
+    @Update
+    suspend fun updateSavingsGoal(goal: SavingsGoalEntity)
+
     @Query("SELECT id FROM budgets WHERE month_start = :monthStart AND category_id = :categoryId LIMIT 1")
     suspend fun findBudgetId(monthStart: Long, categoryId: Long): Long?
 
+    @Query("SELECT * FROM savings_goals WHERE id = :id AND is_archived = 0 LIMIT 1")
+    suspend fun findSavingsGoalById(id: Long): SavingsGoalEntity?
+
     @Query("DELETE FROM budgets WHERE id = :id")
     suspend fun deleteBudgetById(id: Long)
+
+    @Query("DELETE FROM savings_contributions WHERE id = :id")
+    suspend fun deleteSavingsContributionById(id: Long)
+
+    @Query("DELETE FROM savings_goals WHERE id = :id")
+    suspend fun deleteSavingsGoalById(id: Long)
 
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun deleteTransactionById(id: Long)
@@ -134,6 +204,9 @@ interface FinanceDao {
 
     @Query("SELECT COUNT(*) FROM categories")
     suspend fun categoryCount(): Int
+
+    @Query("SELECT COUNT(*) FROM savings_goals WHERE is_archived = 0")
+    suspend fun savingsGoalCount(): Int
 
     @Query("SELECT * FROM accounts WHERE is_archived = 0 ORDER BY id LIMIT 1")
     suspend fun firstActiveAccount(): AccountEntity?
