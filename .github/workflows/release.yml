@@ -80,15 +80,19 @@ jobs:
           set -euo pipefail
           APK="app/build/outputs/apk/release/app-release.apk"
           AAB="app/build/outputs/bundle/release/app-release.aab"
+          APKANALYZER="${ANDROID_HOME}/cmdline-tools/latest/bin/apkanalyzer"
+          APKSIGNER="${ANDROID_HOME}/build-tools/36.0.0/apksigner"
+          test -x "$APKANALYZER"
+          test -x "$APKSIGNER"
           test -f "$APK"
           test -f "$AAB"
-          test "$(apkanalyzer manifest application-id "$APK")" = "id.djawadwipa.kalkulatorkeuangan"
-          test "$(apkanalyzer manifest debuggable "$APK")" = "false"
-          if apkanalyzer manifest print "$APK" | grep -q '<uses-permission'; then
+          test "$("$APKANALYZER" manifest application-id "$APK")" = "id.djawadwipa.kalkulatorkeuangan"
+          test "$("$APKANALYZER" manifest debuggable "$APK")" = "false"
+          if "$APKANALYZER" manifest print "$APK" | grep -q '<uses-permission'; then
             echo "Unexpected Android permission found in release APK" >&2
             exit 1
           fi
-          apksigner verify --verbose --print-certs "$APK"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
           jarsigner -verify -strict "$AAB"
 
       - name: Create SHA-256 checksums
