@@ -117,7 +117,7 @@ internal fun ReportsScreen(modifier: Modifier = Modifier) {
         item {
             MetricCard(
                 "Cakupan dana darurat",
-                "${decimal(report.emergencyFundMonths)} bulan",
+                "${reportDecimal(report.emergencyFundMonths)} bulan",
                 Modifier.fillMaxWidth(),
             )
         }
