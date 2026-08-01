@@ -142,6 +142,9 @@ interface FinanceDao {
     )
     fun observeSavingsContributions(): Flow<List<SavingsContributionRecord>>
 
+    @Query("SELECT * FROM monthly_report_snapshots ORDER BY month_start DESC")
+    fun observeMonthlyReportSnapshots(): Flow<List<MonthlyReportSnapshotEntity>>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAccount(account: AccountEntity): Long
 
@@ -162,6 +165,9 @@ interface FinanceDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveProfile(profile: FinancialProfileEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveMonthlyReportSnapshot(snapshot: MonthlyReportSnapshotEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAccounts(accounts: List<AccountEntity>): List<Long>
@@ -192,6 +198,9 @@ interface FinanceDao {
 
     @Query("DELETE FROM savings_goals WHERE id = :id")
     suspend fun deleteSavingsGoalById(id: Long)
+
+    @Query("DELETE FROM monthly_report_snapshots WHERE id = :id")
+    suspend fun deleteMonthlyReportSnapshotById(id: Long)
 
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun deleteTransactionById(id: Long)
