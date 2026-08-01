@@ -16,23 +16,25 @@ Aplikasi Android native murni untuk pencatatan, perencanaan, perhitungan, dan an
 
 ## Status implementasi
 
-Versi `0.3.0` menyediakan fondasi transaksi, profil, budget, dan analisis yang dapat dibuild:
+Versi `0.4.0` menyediakan fondasi transaksi, perencanaan, tabungan, dan analisis yang dapat dibuild:
 
 - Dashboard arus kas bulan berjalan dan progres target pemasukan.
 - Profil keuangan lokal: nama/panggilan, target pemasukan, dan target tabungan.
 - CRUD pemasukan/pengeluaran dengan tanggal, rekening, kategori, serta catatan.
 - Master rekening dan kategori dengan relasi foreign key.
 - Pencarian dan filter transaksi.
-- Budget bulanan per kategori pengeluaran.
-- Status budget aman, mendekati batas, atau terlampaui.
+- Budget bulanan per kategori pengeluaran beserta realisasi dan status.
 - Analisis pengeluaran per bulan: total, rata-rata harian, kategori terbesar, dan komposisi kategori.
-- Saving rate, expense ratio, budget adherence, dan Financial Health Score.
+- Target tabungan, dana darurat, dan target keuangan dengan CRUD lengkap.
+- Riwayat setoran per target, progres, sisa nominal, tenggat, status, dan estimasi tanggal tercapai.
+- Cakupan dana darurat dalam bulan berdasarkan pengeluaran bulan berjalan.
+- Saving rate, expense ratio, budget adherence, emergency-fund coverage, dan Financial Health Score.
 - Tema navy–emerald dan adaptive launcher icon **Cashflow Orbit**.
 - Kebijakan privasi di dalam aplikasi dan repository.
-- Room Database 2.8.4 dengan migrasi non-destruktif v1 → v2 → v3.
+- Room Database 2.8.4 dengan migrasi non-destruktif v1 → v2 → v3 → v4.
 - Unit test, kompilasi tes migrasi Android, lint, dependency review, debug/release CI, dan signed release pipeline.
 
-Modul berikut telah dipetakan untuk iterasi selanjutnya: tabungan dan dana darurat, target keuangan, cicilan dan utang, snowball, avalanche, investasi, simulasi investasi, aset-liabilitas, net worth, financial freedom, serta laporan bulanan.
+Modul berikut telah dipetakan untuk iterasi selanjutnya: cash flow dan laporan bulanan lanjutan, cicilan dan utang, debt snowball, debt avalanche, investasi, simulasi investasi, aset-liabilitas, net worth, serta financial freedom.
 
 Lihat [status proyek](PROJECT_STATUS.md) untuk batas implementasi saat ini.
 
