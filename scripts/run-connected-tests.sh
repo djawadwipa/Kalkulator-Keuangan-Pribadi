@@ -20,6 +20,8 @@ yes | "$SDKMANAGER" \
   "platform-tools" \
   "emulator" \
   "platforms;android-35" \
+  "platforms;android-36" \
+  "build-tools;36.0.0" \
   "$SYSTEM_IMAGE"
 set -o pipefail
 
