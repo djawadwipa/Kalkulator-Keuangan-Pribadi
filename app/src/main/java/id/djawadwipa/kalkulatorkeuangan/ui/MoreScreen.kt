@@ -46,10 +46,18 @@ internal fun MoreScreen(
     var showAccountDialog by rememberSaveable { mutableStateOf(false) }
     var showCategoryDialog by rememberSaveable { mutableStateOf(false) }
     var showDebtPlanner by rememberSaveable { mutableStateOf(false) }
+    var showInvestmentPlanner by rememberSaveable { mutableStateOf(false) }
 
     if (showDebtPlanner) {
         DebtRouteScreen(
             onBack = { showDebtPlanner = false },
+            modifier = modifier,
+        )
+        return
+    }
+    if (showInvestmentPlanner) {
+        InvestmentRouteScreen(
+            onBack = { showInvestmentPlanner = false },
             modifier = modifier,
         )
         return
@@ -103,6 +111,19 @@ internal fun MoreScreen(
             }
         }
         item {
+            SectionTitle("Investasi dan portofolio")
+            MasterDataRow(
+                title = "Portfolio tracker",
+                subtitle = "Catat posisi, alokasi, keuntungan/rugi, dan proyeksi investasi secara lokal.",
+            )
+            OutlinedButton(
+                onClick = { showInvestmentPlanner = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Buka investasi, portofolio, dan simulasi")
+            }
+        }
+        item {
             SectionTitle("Rekening")
             OutlinedButton(
                 onClick = { showAccountDialog = true },
@@ -151,7 +172,7 @@ internal fun MoreScreen(
                 Text("Hapus seluruh transaksi lokal")
             }
         }
-        item { Text("Versi 0.6.0 • id.djawadwipa.kalkulatorkeuangan") }
+        item { Text("Versi 0.7.0 • id.djawadwipa.kalkulatorkeuangan") }
     }
 
     if (showProfileDialog) {
@@ -187,7 +208,7 @@ internal fun MoreScreen(
             onDismissRequest = { confirmClear = false },
             title = { Text("Hapus semua transaksi?") },
             text = {
-                Text("Profil, rekening, kategori, budget, target, setoran, utang, dan pembayaran utang tetap tersimpan. Tindakan ini tidak dapat dibatalkan.")
+                Text("Profil, rekening, kategori, budget, target, setoran, utang, investasi, dan riwayat terkait tetap tersimpan. Tindakan ini tidak dapat dibatalkan.")
             },
             confirmButton = {
                 Button(
